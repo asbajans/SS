@@ -16,6 +16,7 @@ dependencies = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.29",
   "sqlalchemy[asyncio]>=2.0",
+  "psycopg[binary,pool]>=3.1",
   "asyncpg>=0.29",
   "alembic>=1.13",
   "pydantic>=2.6",
@@ -33,7 +34,6 @@ dependencies = [
 
 [project.optional-dependencies]
 prod = [
-  "psycopg[binary]>=3.1",
   "miniopy-async>=1.20",
 ]
 dev = [
