@@ -1,20 +1,47 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
+import AppShell from "./components/AppShell.jsx";
 import App from "./App.jsx";
+import Admin from "./pages/Admin.jsx";
+import Billing from "./pages/Billing.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Login from "./pages/Login.jsx";
+import NewProject from "./pages/NewProject.jsx";
 import ProjectDetail from "./pages/ProjectDetail.jsx";
+import Projects from "./pages/Projects.jsx";
+import Reports from "./pages/Reports.jsx";
+import RunDetail from "./pages/RunDetail.jsx";
+import Runs from "./pages/Runs.jsx";
+import Settings from "./pages/Settings.jsx";
+import { getToken } from "./api.js";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/projects" element={<Dashboard />} />
-        <Route path="/projects/:id" element={<ProjectDetail />} />
+        <Route path="/login" element={<Login mode="login" />} />
+        <Route path="/register" element={<Login mode="register" />} />
+        <Route path="/app" element={<AppShell />}>
+          <Route index element={<Dashboard />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="projects/new" element={<NewProject />} />
+          <Route path="projects/:id" element={<ProjectDetail />} />
+          <Route path="runs" element={<Runs />} />
+          <Route path="runs/:id" element={<RunDetail />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="billing" element={<Billing />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="admin" element={<Admin />} />
+        </Route>
+        <Route
+          path="*"
+          element={
+            getToken() ? <Navigate to="/app" replace /> : <Navigate to="/login" replace />
+          }
+        />
       </Routes>
     </BrowserRouter>
   </StrictMode>

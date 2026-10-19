@@ -36,7 +36,17 @@ async def list_projects(user=Depends(current_user), db: AsyncSession = Depends(g
             select(Project).where(Project.user_id == user.id).order_by(Project.created_at.desc())
         )
     ).all()
-    return [{"id": p.id, "name": p.name, "status": p.status} for p in rows]
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "status": p.status,
+            "template_key": p.template_key,
+            "language": p.language,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p in rows
+    ]
 
 
 @router.post("/projects", status_code=201)
@@ -89,14 +99,21 @@ async def list_runs(user=Depends(current_user), db: AsyncSession = Depends(get_d
             .order_by(Run.created_at.desc())
         )
     ).all()
+    ids = {r.project_id for r in rows}
+    names = {
+        p.id: p.name
+        for p in (await db.scalars(select(Project).where(Project.id.in_(ids)))).all()
+    }
     return [
         {
             "id": r.id,
             "project_id": r.project_id,
+            "project_name": names.get(r.project_id),
             "status": r.status,
             "current_round": r.current_round,
             "tokens_used": r.tokens_used,
             "cost_usd": str(r.cost_usd),
+            "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r in rows
     ]
@@ -107,12 +124,19 @@ async def get_run(run_id: str, user=Depends(current_user), db: AsyncSession = De
     run = await db.get(Run, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="not found")
+    project = await db.get(Project, run.project_id)
+    if project is None or project.user_id != user.id:
+        raise HTTPException(status_code=404, detail="not found")
     return {
         "id": run.id,
+        "project_id": run.project_id,
+        "project_name": project.name,
+        "template_key": project.template_key,
         "status": run.status,
         "current_round": run.current_round,
         "tokens_used": run.tokens_used,
         "cost_usd": str(run.cost_usd),
         "error": run.error,
         "report_object_key": run.report_object_key,
+        "created_at": run.created_at.isoformat() if run.created_at else None,
     }
