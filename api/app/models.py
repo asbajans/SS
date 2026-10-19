@@ -13,6 +13,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    Uuid,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -25,13 +26,13 @@ class Base(DeclarativeBase):
     pass
 
 
-def uid() -> Mapped[str]:
-    return mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+def uid() -> Mapped[uuid.UUID]:
+    return mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
 
 
 class User(Base):
     __tablename__ = "users"
-    id: Mapped[str] = uid()
+    id: Mapped[uuid.UUID] = uid()
     email: Mapped[str] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str] = mapped_column(String(256))
     plan: Mapped[str] = mapped_column(String(32), default="free")
@@ -63,8 +64,8 @@ class ModelConfig(Base):
 
 class Project(Base):
     __tablename__ = "projects"
-    id: Mapped[str] = uid()
-    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    id: Mapped[uuid.UUID] = uid()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(Text)
     template_key: Mapped[str] = mapped_column(String(64), default="market_research")
     language: Mapped[str] = mapped_column(String(8), default="tr")
@@ -78,8 +79,8 @@ class Project(Base):
 
 class Document(Base):
     __tablename__ = "documents"
-    id: Mapped[str] = uid()
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    id: Mapped[uuid.UUID] = uid()
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     filename: Mapped[str] = mapped_column(Text)
     minio_key: Mapped[str] = mapped_column(Text)
     mime: Mapped[str | None] = mapped_column(String(128), nullable=True)
@@ -90,9 +91,9 @@ class Document(Base):
 
 class DocumentChunk(Base):
     __tablename__ = "document_chunks"
-    id: Mapped[str] = uid()
-    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    id: Mapped[uuid.UUID] = uid()
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     chunk_idx: Mapped[int] = mapped_column(Integer)
     content: Mapped[str] = mapped_column(Text)
     embedding = mapped_column(Vector(settings.embed_dim))
@@ -102,8 +103,10 @@ class DocumentChunk(Base):
 
 class Ontology(Base):
     __tablename__ = "ontologies"
-    id: Mapped[str] = uid()
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), unique=True)
+    id: Mapped[uuid.UUID] = uid()
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), unique=True
+    )
     entity_types: Mapped[dict] = mapped_column(JSONB)
     relation_types: Mapped[dict] = mapped_column(JSONB)
     seed_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -112,8 +115,8 @@ class Ontology(Base):
 
 class Agent(Base):
     __tablename__ = "agents"
-    id: Mapped[str] = uid()
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    id: Mapped[uuid.UUID] = uid()
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     agent_idx: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String(128))
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -126,8 +129,8 @@ class Agent(Base):
 
 class Run(Base):
     __tablename__ = "runs"
-    id: Mapped[str] = uid()
-    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
+    id: Mapped[uuid.UUID] = uid()
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"))
     status: Mapped[str] = mapped_column(String(32), default="pending")
     sim_config: Mapped[dict] = mapped_column(JSONB, default=dict)
     current_round: Mapped[int] = mapped_column(Integer, default=0)
@@ -145,11 +148,11 @@ class Run(Base):
 class RunEvent(Base):
     __tablename__ = "run_events"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"))
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"))
     round: Mapped[int] = mapped_column(Integer)
     platform: Mapped[str] = mapped_column(String(32), default="forum")
     seq_in_round: Mapped[int] = mapped_column(Integer)
-    agent_id: Mapped[str | None] = mapped_column(ForeignKey("agents.id"), nullable=True)
+    agent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agents.id"), nullable=True)
     event_type: Mapped[str] = mapped_column(String(32))
     payload: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(
@@ -160,9 +163,9 @@ class RunEvent(Base):
 class TokenUsage(Base):
     __tablename__ = "token_usage"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    project_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    run_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    run_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     task_key: Mapped[str] = mapped_column(String(64))
     model: Mapped[str] = mapped_column(String(128))
     prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)
@@ -177,7 +180,7 @@ class TokenUsage(Base):
 
 class BreachLog(Base):
     __tablename__ = "security_breach_log"
-    id: Mapped[str] = uid()
+    id: Mapped[uuid.UUID] = uid()
     detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     scope: Mapped[str] = mapped_column(Text)
     affected_count: Mapped[int | None] = mapped_column(Integer, nullable=True)

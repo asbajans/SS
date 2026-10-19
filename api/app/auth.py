@@ -52,7 +52,7 @@ async def register(data: RegisterIn, db: AsyncSession = Depends(get_db)) -> dict
     user = User(email=data.email, password_hash=hash_password(data.password))
     db.add(user)
     await db.commit()
-    return {"id": user.id, "email": user.email, "token": make_token(user.id, user.is_admin)}
+    return {"id": user.id, "email": user.email, "token": make_token(str(user.id), user.is_admin)}
 
 
 @router.post("/login")
@@ -61,7 +61,7 @@ async def login(data: LoginIn, db: AsyncSession = Depends(get_db)) -> dict:
     if user is None or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid credentials")
     return {"id": user.id, "email": user.email, "is_admin": user.is_admin,
-            "token": make_token(user.id, user.is_admin)}
+            "token": make_token(str(user.id), user.is_admin)}
 
 
 @router.get("/me")

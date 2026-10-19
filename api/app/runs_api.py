@@ -75,7 +75,7 @@ async def create_run(project_id: str, user=Depends(current_user), db: AsyncSessi
 
     from app.tasks.celery_app import celery_app
 
-    celery_app.send_task("pipeline.run", args=[run.id], task_id=str(uuid.uuid4()))
+    celery_app.send_task("pipeline.run", args=[str(run.id)], task_id=str(uuid.uuid4()))
     return {"run_id": run.id, "queued": True}
 
 
