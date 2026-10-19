@@ -12,3 +12,5 @@ dist/
 uploads/
 
 *.egg-info/
+
+build/
