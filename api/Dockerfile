@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY api/pyproject.toml ./pyproject.toml
 COPY engine ./engine
+COPY db ./db
 COPY api/app ./app
 
 RUN pip install --no-cache-dir ".[prod]"

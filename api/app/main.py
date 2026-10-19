@@ -8,11 +8,12 @@ from app.auth import router as auth_router
 from app.billing_api import router as billing_router
 from app.health import router as health_router
 from app.runs_api import router as runs_router
-from app.startup import create_first_admin
+from app.startup import create_first_admin, ensure_schema
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await ensure_schema()
     await create_first_admin()
     yield
 

@@ -1,6 +1,8 @@
 """Bootstrap helpers (idempotent)."""
+from pathlib import Path
+
 import structlog
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.config import settings
 from app.db import AsyncSessionLocal
@@ -8,6 +10,21 @@ from app.models import User
 from app.security import hash_password
 
 log = structlog.get_logger(__name__)
+
+_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "db" / "init.sql"
+
+
+async def ensure_schema() -> None:
+    if not _SCHEMA_PATH.exists():
+        log.warning("schema_file_missing", path=str(_SCHEMA_PATH))
+        return
+    async with AsyncSessionLocal() as s:
+        existing = await s.scalar(select(text("to_regclass('users')")))
+        if existing:
+            return
+        await s.execute(text(_SCHEMA_PATH.read_text(encoding="utf-8")))
+        await s.commit()
+        log.info("schema_applied", path=str(_SCHEMA_PATH))
 
 
 async def create_first_admin() -> None:
