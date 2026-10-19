@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install
-        run: pip install ./api || pip install "./api[dev]"
+        run: pip install "./api[dev]"
       - name: Lint
         run: ruff check --config api/pyproject.toml api engine
       - name: Tests
