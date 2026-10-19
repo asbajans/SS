@@ -43,7 +43,9 @@ jobs:
         env:
           WEBHOOK: ${{ vars.PORTAINER_WEBHOOK }}
         run: |
-          code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X POST -L --max-time 60 "$WEBHOOK")
+          url="$WEBHOOK"
+          case "$url" in *\?*) url="$url&pullimage=false";; *) url="$url?pullimage=false";; esac
+          code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X POST -L --max-time 60 "$url")
           echo "HTTP $code"
           cat /tmp/pt_resp.txt
           [ "$code" -ge 200 ] && [ "$code" -lt 300 ]

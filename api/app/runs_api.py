@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import current_user, get_db
 from app.models import Project, Run
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 
 def _validate_sim_config(cfg: dict) -> str | None:
@@ -29,7 +29,7 @@ class ProjectIn(BaseModel):
     sim_config: dict = {}
 
 
-@router.get("")
+@router.get("/projects")
 async def list_projects(user=Depends(current_user), db: AsyncSession = Depends(get_db)):
     rows = (
         await db.scalars(
@@ -39,7 +39,7 @@ async def list_projects(user=Depends(current_user), db: AsyncSession = Depends(g
     return [{"id": p.id, "name": p.name, "status": p.status} for p in rows]
 
 
-@router.post("", status_code=201)
+@router.post("/projects", status_code=201)
 async def create_project(data: ProjectIn, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
     invalid = _validate_sim_config(data.sim_config)
     if invalid:
@@ -62,7 +62,7 @@ async def create_project(data: ProjectIn, user=Depends(current_user), db: AsyncS
     return {"id": project.id, "status": project.status, "template_key": project.template_key}
 
 
-@router.post("/{project_id}/runs", status_code=202)
+@router.post("/projects/{project_id}/runs", status_code=202)
 async def create_run(project_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
     project = (
         await db.scalars(select(Project).where(Project.id == project_id, Project.user_id == user.id))
@@ -79,7 +79,30 @@ async def create_run(project_id: str, user=Depends(current_user), db: AsyncSessi
     return {"run_id": run.id, "queued": True}
 
 
-@router.get("/{run_id}")
+@router.get("/runs")
+async def list_runs(user=Depends(current_user), db: AsyncSession = Depends(get_db)):
+    rows = (
+        await db.scalars(
+            select(Run)
+            .join(Project, Run.project_id == Project.id)
+            .where(Project.user_id == user.id)
+            .order_by(Run.created_at.desc())
+        )
+    ).all()
+    return [
+        {
+            "id": r.id,
+            "project_id": r.project_id,
+            "status": r.status,
+            "current_round": r.current_round,
+            "tokens_used": r.tokens_used,
+            "cost_usd": str(r.cost_usd),
+        }
+        for r in rows
+    ]
+
+
+@router.get("/runs/{run_id}")
 async def get_run(run_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
     run = await db.get(Run, run_id)
     if run is None:
