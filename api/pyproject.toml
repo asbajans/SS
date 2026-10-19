@@ -52,3 +52,4 @@ ignore = ["S101", "B008", "S105", "S311"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = ["integration: requires running services"]
