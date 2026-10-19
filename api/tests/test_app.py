@@ -2,8 +2,12 @@
 from app.main import app
 
 
+def _paths() -> set[str]:
+    return set(app.openapi().get("paths", {}))
+
+
 def test_app_builds_and_exposes_routes():
-    paths = {getattr(r, "path", "") for r in app.routes}
+    paths = _paths()
     expected = {
         "/health",
         "/api/projects",
@@ -16,4 +20,4 @@ def test_app_builds_and_exposes_routes():
 
 
 def test_health_route_registered():
-    assert any(getattr(r, "path", "") == "/health" for r in app.routes)
+    assert "/health" in _paths()
