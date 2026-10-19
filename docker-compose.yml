@@ -130,6 +130,8 @@ services:
       redis:
         condition: service_healthy
     command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    healthcheck:
+      disable: true
 
   web:
     build:

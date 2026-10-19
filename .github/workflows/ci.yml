@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   python:
@@ -32,3 +33,17 @@ jobs:
           node-version: "22"
       - run: npm install
       - run: npm run build
+
+  deploy:
+    if: github.event_name != 'pull_request' && vars.PORTAINER_WEBHOOK != ''
+    needs: [python, web]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer stack update
+        env:
+          WEBHOOK: ${{ vars.PORTAINER_WEBHOOK }}
+        run: |
+          code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X POST -L --max-time 60 "$WEBHOOK")
+          echo "HTTP $code"
+          cat /tmp/pt_resp.txt
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
