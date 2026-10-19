@@ -34,7 +34,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: ghcr.io/asbajans/rahatio/minio:latest
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
@@ -47,7 +47,7 @@ services:
       - "127.0.0.1:3906:9001"
 
   minio-init:
-    image: minio/mc:latest
+    image: ghcr.io/asbajans/rahatio/minio-mc:latest
     depends_on:
       minio:
         condition: service_started
