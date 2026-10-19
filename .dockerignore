@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example
+api/tests/__pycache__/
+api/.pytest_cache/
+api/.ruff_cache/
+web/node_modules/
+web/dist/
+ops/backup_spec.md
