@@ -13,7 +13,7 @@ description = "Simulated community research SaaS - API + engine"
 requires-python = ">=3.11"
 
 dependencies = [
-  "fastapi>=0.110",
+  "fastapi>=0.115,<0.116",
   "uvicorn[standard]>=0.29",
   "sqlalchemy[asyncio]>=2.0",
   "psycopg[binary,pool]>=3.1",
