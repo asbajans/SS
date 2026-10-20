@@ -22,25 +22,40 @@ async def ensure_bucket() -> None:
     if _bucket_ready:
         return
     client = _client()
-    if not await client.bucket_exists(settings.minio_bucket):
-        await client.make_bucket(settings.minio_bucket)
-    _bucket_ready = True
+    try:
+        if not await client.bucket_exists(settings.minio_bucket):
+            await client.make_bucket(settings.minio_bucket)
+        _bucket_ready = True
+    finally:
+        await client.close_session()
 
 
 async def put_bytes(key: str, data: bytes, content_type: str = "application/octet-stream") -> None:
     await ensure_bucket()
-    await _client().put_object(
-        settings.minio_bucket, key, BytesIO(data), len(data), content_type=content_type
-    )
+    client = _client()
+    try:
+        await client.put_object(
+            settings.minio_bucket, key, BytesIO(data), len(data), content_type=content_type
+        )
+    finally:
+        await client.close_session()
 
 
 async def get_bytes(key: str) -> bytes:
-    resp = await _client().get_object(settings.minio_bucket, key)
+    client = _client()
     try:
-        return await resp.read()
+        resp = await client.get_object(settings.minio_bucket, key)
+        try:
+            return await resp.read()
+        finally:
+            resp.close()
     finally:
-        resp.close()
+        await client.close_session()
 
 
 async def delete_object(key: str) -> None:
-    await _client().remove_object(settings.minio_bucket, key)
+    client = _client()
+    try:
+        await client.remove_object(settings.minio_bucket, key)
+    finally:
+        await client.close_session()
