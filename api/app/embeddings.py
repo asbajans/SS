@@ -4,7 +4,7 @@ import httpx
 from app.config import settings
 
 
-async def embed_texts(texts: list[str], batch_size: int = 16) -> list[list[float]]:
+async def embed_texts(texts: list[str], batch_size: int = 8) -> list[list[float]]:
     vectors: list[list[float]] = []
     async with httpx.AsyncClient(timeout=180) as client:
         for i in range(0, len(texts), batch_size):
