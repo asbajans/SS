@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api, PROFILES, TEMPLATES } from "../api.js";
@@ -32,12 +32,21 @@ export default function NewProject() {
   const hasTpl = initialTpl && TEMPLATES.some((t) => t.key === initialTpl);
   const [step, setStep] = useState(hasTpl ? 2 : 1);
   const [tpl, setTpl] = useState(hasTpl ? initialTpl : "market_research");
+  const [templates, setTemplates] = useState(TEMPLATES);
   const [name, setName] = useState("");
   const [language, setLanguage] = useState("tr");
   const [profile, setProfile] = useState("std");
   const [custom, setCustom] = useState({ agents_n: 120, rounds: 30, platforms: 1 });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api("/api/templates")
+      .then((list) => {
+        if (Array.isArray(list) && list.length) setTemplates(list);
+      })
+      .catch(() => {});
+  }, []);
 
   async function finish() {
     setBusy(true); setError(null);
@@ -66,7 +75,7 @@ export default function NewProject() {
 
       {step === 1 && (
         <div className="choice-grid">
-          {TEMPLATES.map((t) => (
+          {templates.map((t) => (
             <button key={t.key} type="button" className={`choice${tpl === t.key ? " sel" : ""}`} onClick={() => setTpl(t.key)}>
               <span className="c-icon"><Icon name="box" /></span>
               <h4>{t.name}</h4><p>{t.desc}</p>
@@ -92,7 +101,7 @@ export default function NewProject() {
               </select>
             </div>
             <div className="field"><label>Şablon</label>
-              <div className="input" style={{ background: "#f9fafb", display: "flex", alignItems: "center" }}>{TEMPLATES.find((t) => t.key === tpl)?.name}</div>
+              <div className="input" style={{ background: "#f9fafb", display: "flex", alignItems: "center" }}>{templates.find((t) => t.key === tpl)?.name}</div>
             </div>
           </div>
           <div className="dropzone disabled"><Icon name="upload" size={22} />

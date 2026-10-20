@@ -49,6 +49,30 @@ VALUES
   ('agent_interview', 'meta-llama/llama-3.1-70b-instruct',  '{openai/gpt-4o-mini}', 1000, 0.5, 30,   500000, 0.4,  0.4)
 ON CONFLICT (task_key) DO NOTHING;
 
+-- ---------- templates (admin-managed topic packs; builtins seeded at startup) ----------
+CREATE TABLE IF NOT EXISTS templates (
+    key         TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    pack        JSONB NOT NULL,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    is_builtin  BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ---------- privacy_requests (DSR audit trail; user/email nulled after processing) ----------
+CREATE TABLE IF NOT EXISTS privacy_requests (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID,
+    email        TEXT,
+    status       TEXT NOT NULL DEFAULT 'pending', -- pending|processing|completed|failed
+    note         TEXT,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    processed_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_privacy_status ON privacy_requests(status, requested_at);
+
 -- ---------- projects ----------
 CREATE TABLE IF NOT EXISTS projects (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

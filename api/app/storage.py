@@ -59,3 +59,19 @@ async def delete_object(key: str) -> None:
         await client.remove_object(settings.minio_bucket, key)
     finally:
         await client.close_session()
+
+
+async def delete_prefix(prefix: str) -> int:
+    client = _client()
+    try:
+        keys = [
+            obj.object_name
+            async for obj in client.list_objects(
+                settings.minio_bucket, prefix=prefix, recursive=True
+            )
+        ]
+        for key in keys:
+            await client.remove_object(settings.minio_bucket, key)
+        return len(keys)
+    finally:
+        await client.close_session()

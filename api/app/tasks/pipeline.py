@@ -22,6 +22,7 @@ from app.models import (
     TokenUsage,
 )
 from app.storage import put_bytes
+from app.template_service import load_template
 from engine.actions import parse_agent_action
 from engine.loop import build_agent_messages
 from engine.ontology import build_ontology_prompt, parse_ontology
@@ -39,7 +40,6 @@ from engine.report import (
     summarize_events,
 )
 from engine.scheduler import ScheduleConfig, pick_active_agents
-from engine.templates import get_template
 
 log = structlog.get_logger(__name__)
 
@@ -514,7 +514,7 @@ async def _run(run_id: str) -> dict:
             if project is None:
                 await _set_status(s, run_id, "failed", error="project missing")
                 return {"status": "failed"}
-            template = get_template(project.template_key)
+            template = await load_template(s, project.template_key)
             config = run.sim_config or {}
             agents_n = int(
                 config.get("agents_n") or template.sim_defaults.get("agents_n", 60)

@@ -21,3 +21,4 @@ celery_app.conf.update(
 
 import app.tasks.ingest  # noqa: E402,F401  (registers "ingest.document")
 import app.tasks.pipeline  # noqa: E402,F401  (registers shared_task "pipeline.run")
+import app.tasks.privacy  # noqa: E402,F401  (registers "privacy.delete_user")

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import current_user, get_db
 from app.config import settings
 from app.llm_gateway.config_resolver import invalidate_config
-from app.models import ModelConfig, TokenUsage
+from app.models import ModelConfig, PrivacyRequest, TokenUsage
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -131,3 +131,23 @@ async def openrouter_models(refresh: bool = False):
 async def usage_summary(db: AsyncSession = Depends(get_db)):
     rows = (await db.scalars(select(TokenUsage))).all()
     return {"total_calls": len(rows)}
+
+
+@router.get("/privacy/requests", dependencies=[Depends(admin_only)])
+async def list_privacy_requests(db: AsyncSession = Depends(get_db)):
+    rows = (
+        await db.scalars(
+            select(PrivacyRequest).order_by(PrivacyRequest.requested_at.desc()).limit(50)
+        )
+    ).all()
+    return [
+        {
+            "id": str(r.id),
+            "email": r.email,
+            "status": r.status,
+            "note": r.note,
+            "requested_at": r.requested_at.isoformat() if r.requested_at else None,
+            "processed_at": r.processed_at.isoformat() if r.processed_at else None,
+        }
+        for r in rows
+    ]

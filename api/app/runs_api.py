@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_user, get_db
 from app.db import AsyncSessionLocal
-from app.models import Agent, Ontology, Project, Run, RunEvent
+from app.models import Agent, Ontology, Project, Run, RunEvent, Template
 from app.storage import get_bytes
 
 router = APIRouter(prefix="/api")
@@ -64,11 +64,9 @@ async def create_project(data: ProjectIn, user=Depends(current_user), db: AsyncS
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     template_key = data.template_key
-    from engine.templates import get_template
-    try:
-        get_template(template_key)
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    tpl = await db.get(Template, template_key)
+    if tpl is None or not tpl.is_active:
+        raise HTTPException(status_code=400, detail=f"unknown template: {template_key}")
     project = Project(
         user_id=user.id,
         name=data.name,
