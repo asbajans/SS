@@ -143,6 +143,23 @@ export async function uploadDocument(projectId, file) {
   return data;
 }
 
+export async function downloadReport(runId, fmt = "pdf") {
+  const token = getToken();
+  const r = await fetch(`${BASE}/api/runs/${runId}/report/download?format=${fmt}`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+  if (!r.ok) throw new Error(`Rapor indirilemedi (${r.status})`);
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `simulasyon-raporu-${String(runId).slice(0, 8)}.${fmt}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function streamRunEvents(runId, { onStatus, onEvent, signal } = {}) {
   const token = getToken();
   const r = await fetch(`${BASE}/api/runs/${runId}/events/stream`, {

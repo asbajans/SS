@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import current_user, get_db
 from app.db import AsyncSessionLocal
 from app.models import Agent, Ontology, Project, Run, RunEvent
+from app.storage import get_bytes
 
 router = APIRouter(prefix="/api")
 
@@ -142,8 +143,53 @@ async def get_run(run_id: str, user=Depends(current_user), db: AsyncSession = De
         "cost_usd": str(run.cost_usd),
         "error": run.error,
         "report_object_key": run.report_object_key,
+        "report_meta": run.report_meta,
         "created_at": run.created_at.isoformat() if run.created_at else None,
     }
+
+
+@router.get("/runs/{run_id}/report")
+async def get_run_report(
+    run_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)
+):
+    run = await _owned_run(db, user, run_id)
+    if not run.report_object_key:
+        return {"ready": False, "meta": run.report_meta}
+    meta = run.report_meta or {}
+    return {
+        "ready": True,
+        "pdf_key": run.report_object_key,
+        "md_key": meta.get("md_key"),
+        "meta": meta,
+    }
+
+
+@router.get("/runs/{run_id}/report/download")
+async def download_run_report(
+    run_id: str,
+    format: str = "pdf",
+    user=Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    run = await _owned_run(db, user, run_id)
+    meta = run.report_meta or {}
+    if format == "md":
+        key = meta.get("md_key")
+        media_type = "text/markdown; charset=utf-8"
+        ext = "md"
+    else:
+        key = run.report_object_key
+        media_type = "application/pdf"
+        ext = "pdf"
+    if not key:
+        raise HTTPException(status_code=404, detail="report not ready")
+    data = await get_bytes(key)
+    filename = f"simulasyon-raporu-{str(run.id)[:8]}.{ext}"
+    return Response(
+        content=data,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 async def _owned_run(db: AsyncSession, user, run_id: str) -> Run:

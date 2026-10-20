@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, STAGES, stageIndex, streamRunEvents } from "../api.js";
+import { ACTIVE_STATUSES, api, downloadReport, fmtCost, fmtDate, fmtTokens, STAGES, stageIndex, streamRunEvents } from "../api.js";
 import Icon from "../icons.jsx";
 
 function eventText(ev) {
@@ -99,7 +99,9 @@ export default function RunDetail() {
             </button>
           )}
           {run.report_object_key && (
-            <button className="btn" type="button" disabled title="Rapor indirme F3'te geliyor"><Icon name="doc" size={15} /> Raporu indir</button>
+            <button className="btn btn-primary" type="button" onClick={() => downloadReport(id, "pdf").catch((e) => setErr(e.message))}>
+              <Icon name="doc" size={15} /> Rapor (PDF)
+            </button>
           )}
         </div>
       </div>
@@ -157,6 +159,27 @@ export default function RunDetail() {
           )}
         </div>
       </div>
+
+      {run.report_meta && (
+        <div className="card card-pad" style={{ marginTop: 18 }}>
+          <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
+            <h3>Rapor</h3>
+            <div className="row">
+              <button className="btn btn-sm" type="button" onClick={() => downloadReport(id, "pdf").catch((e) => setErr(e.message))}>PDF indir</button>
+              <button className="btn btn-sm" type="button" onClick={() => downloadReport(id, "md").catch((e) => setErr(e.message))}>Markdown indir</button>
+            </div>
+          </div>
+          {Array.isArray(run.report_meta.sections) && run.report_meta.sections.length > 0 && (
+            <div className="row" style={{ flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {run.report_meta.sections.map((s, i) => <span className="badge no-dot" key={i}>{s}</span>)}
+            </div>
+          )}
+          <p className="small muted">
+            {run.report_meta.sources ? `${run.report_meta.sources} kaynak belge · ` : ""}
+            {run.report_meta.events ? `${run.report_meta.events} olay` : ""}
+          </p>
+        </div>
+      )}
 
       <div className="notice"><Icon name="bell" size={15} /><span>Bu koşunun tüm olayları ve raporu simülasyon ürünüdür; gerçek anket veya saha verisi değildir.</span></div>
     </>

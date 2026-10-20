@@ -11,11 +11,24 @@ from sqlalchemy import select
 from app.config import settings
 from app.db import AsyncSessionLocal
 from app.llm_gateway.factory import build_gateway
-from app.models import Agent, DocumentChunk, Ontology, Project, Run, RunEvent
+from app.models import Agent, Document, DocumentChunk, Ontology, Project, Run, RunEvent
+from app.storage import put_bytes
 from engine.actions import parse_agent_action
 from engine.loop import build_agent_messages
 from engine.ontology import build_ontology_prompt, parse_ontology
 from engine.population import build_persona_prompt, parse_personas
+from engine.report import (
+    build_evidence,
+    build_outline_messages,
+    build_section_messages,
+    compose_markdown,
+    disclaimer_for,
+    fallback_section_body,
+    fallback_sections,
+    parse_outline,
+    render_pdf,
+    summarize_events,
+)
 from engine.scheduler import ScheduleConfig, pick_active_agents
 from engine.templates import get_template
 
@@ -340,6 +353,130 @@ async def _stage_running(s, run, project, template, redis_client, agents: list[A
     return "done"
 
 
+async def _stage_report(s, run, project, template, gateway) -> dict:
+    language = project.language or "tr"
+    config = run.sim_config or {}
+    platforms = int(config.get("platforms") or 1)
+    rounds = run.current_round
+    events = (
+        await s.scalars(
+            select(RunEvent)
+            .where(RunEvent.run_id == run.id, RunEvent.event_type != "system")
+            .order_by(RunEvent.round, RunEvent.seq_in_round)
+        )
+    ).all()
+    agents = (await s.scalars(select(Agent).where(Agent.project_id == project.id))).all()
+    docs = (await s.scalars(select(Document).where(Document.project_id == project.id))).all()
+    ontology = (
+        await s.scalars(select(Ontology).where(Ontology.project_id == project.id))
+    ).first()
+    names = {agent.id: agent.name for agent in agents}
+    source_files = [doc.filename for doc in docs]
+    seed_summary = (ontology.seed_summary if ontology else "") or ""
+    stats_text = summarize_events(events, len(agents), rounds, platforms)
+    evidence, bibliography = build_evidence(events, names, source_files)
+    fallback = fallback_sections(language)
+    try:
+        outline_res = await gateway.call(
+            "report_outline",
+            build_outline_messages(
+                project_name=project.name,
+                template_name=template.name,
+                language=language,
+                seed_summary=seed_summary,
+                stats_text=stats_text,
+                source_files=source_files,
+            ),
+            user_id=project.user_id,
+            project_id=project.id,
+            run_id=run.id,
+            response_json=True,
+        )
+        titles = parse_outline(outline_res.text, fallback)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("report_outline_failed", run_id=str(run.id), err=str(exc))
+        titles = fallback
+    sections: list[dict] = []
+    for idx, title in enumerate(titles, start=1):
+        await _event(
+            s,
+            run.id,
+            0,
+            0,
+            "system",
+            {"stage": "report", "message": f"Rapor bölümü {idx}/{len(titles)}: {title}"},
+        )
+        await s.commit()
+        try:
+            res = await gateway.call(
+                "report_section",
+                build_section_messages(
+                    title=title,
+                    project_name=project.name,
+                    language=language,
+                    evidence=evidence,
+                    previous_titles=[section["title"] for section in sections],
+                ),
+                user_id=project.user_id,
+                project_id=project.id,
+                run_id=run.id,
+            )
+            body = res.text.strip()
+            if res.model == "mock":
+                body = fallback_section_body(title, stats_text, evidence, language)
+        except Exception as exc:  # noqa: BLE001
+            log.warning(
+                "report_section_failed", run_id=str(run.id), section=title, err=str(exc)
+            )
+            body = fallback_section_body(title, stats_text, evidence, language)
+        sections.append({"title": title, "body": body})
+    disclaimer = disclaimer_for(language)
+    if language == "en":
+        report_title = f"{project.name} — Simulation Report"
+        meta_lines = [
+            f"Project: {project.name}",
+            f"Template: {template.name}",
+            f"Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
+            f"Agents: {len(agents)} · Rounds: {rounds} · Platforms: {platforms}",
+        ]
+    else:
+        report_title = f"{project.name} — Simülasyon Raporu"
+        meta_lines = [
+            f"Proje: {project.name}",
+            f"Şablon: {template.name}",
+            f"Üretim: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
+            f"Ajan: {len(agents)} · Tur: {rounds} · Platform: {platforms}",
+        ]
+    markdown = compose_markdown(
+        title=report_title,
+        meta_lines=meta_lines,
+        sections=sections,
+        bibliography=bibliography,
+        disclaimer=disclaimer,
+    )
+    pdf_bytes = render_pdf(markdown, report_title, f"{project.name} · Social Simulation")
+    base_key = f"projects/{project.id}/runs/{run.id}"
+    md_key = f"{base_key}/report.md"
+    pdf_key = f"{base_key}/report.pdf"
+    await put_bytes(md_key, markdown.encode("utf-8"), "text/markdown; charset=utf-8")
+    await put_bytes(pdf_key, pdf_bytes, "application/pdf")
+    run.report_object_key = pdf_key
+    run.report_meta = {
+        "pdf_key": pdf_key,
+        "md_key": md_key,
+        "sections": [section["title"] for section in sections],
+        "sources": len(source_files),
+        "events": len(events),
+        "generated_at": datetime.now(UTC).isoformat(),
+    }
+    await s.commit()
+    await _event(
+        s, run.id, 0, 0, "system", {"stage": "report", "message": "Rapor hazır (PDF + Markdown)"}
+    )
+    await s.commit()
+    return {"pdf_key": pdf_key, "md_key": md_key, "sections": len(sections)}
+
+
 async def _run(run_id: str) -> dict:
     import redis.asyncio as aioredis
 
@@ -394,8 +531,10 @@ async def _run(run_id: str) -> dict:
                 0,
                 0,
                 "system",
-                {"stage": "report", "message": "Rapor üretimi sonraki fazda (F3)"},
+                {"stage": "report", "message": "Rapor üretiliyor"},
             )
+            await s.commit()
+            await _stage_report(s, run, project, template, gateway)
             await _set_status(s, run_id, "completed")
             await _event(
                 s,
