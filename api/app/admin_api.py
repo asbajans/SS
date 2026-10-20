@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_user, get_db
+from app.llm_gateway.config_resolver import invalidate_config
 from app.models import ModelConfig, TokenUsage
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -69,6 +70,7 @@ async def upsert_model(task_key: str, data: ModelConfigIn, db: AsyncSession = De
     cfg.enabled = data.enabled
     db.add(cfg)
     await db.commit()
+    invalidate_config(task_key)
     return {"task_key": task_key, "saved": True}
 
 

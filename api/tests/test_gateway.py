@@ -1,4 +1,6 @@
 """Gateway smoke test (offline, mock mode)."""
+import pytest
+
 from app.llm_gateway.gateway import LLMGateway
 
 
@@ -8,11 +10,14 @@ class _FakeRateLimiter:
 
 
 class _FakeRecorder:
+    def __init__(self):
+        self.calls = []
+
     async def assert_quota(self, **kwargs):
         return None
 
     async def record(self, ctx, result, task_key):
-        return None
+        self.calls.append((task_key, result))
 
 
 class _FakeCfg:
@@ -21,9 +26,37 @@ class _FakeCfg:
     max_tokens = 100
     temperature = 0.7
     rpm = 10
+    tpm = 10_000
+    daily_budget_tokens = 1_000_000
+    monthly_budget_tokens = 1_000_000
+    cost_in_usd_per_mtok = 0.0
+    cost_out_usd_per_mtok = 0.0
+    enabled = True
+
+
+async def _resolve(task_key: str) -> _FakeCfg:
+    return _FakeCfg()
 
 
 async def test_gateway_mock_mode():
-    gw = LLMGateway(lambda task: _FakeCfg(), _FakeRateLimiter(), _FakeRecorder())
+    recorder = _FakeRecorder()
+    gw = LLMGateway(_resolve, _FakeRateLimiter(), recorder)
     res = await gw.call("agent_act", [{"role": "user", "content": "hi"}])
-    assert "MOCK:agent_act" in res.text or '"action"' in res.text
+    assert res.status == "mock"
+    assert res.prompt_tokens == 0 and res.completion_tokens == 0 and res.cost_usd == 0.0
+    text = res.text
+    assert "MOCK:agent_act" in text or '"action"' in text
+    assert len(recorder.calls) == 1
+    assert recorder.calls[0][0] == "agent_act"
+
+
+@pytest.mark.asyncio
+async def test_gateway_unknown_task_rejected():
+    gw = LLMGateway(_resolve, _FakeRateLimiter(), _FakeRecorder())
+    # _FakeCfg.enabled = True for every key, so use a disabling wrapper instead.
+    async def disabled(task_key: str):
+        raise Exception("not found")
+
+    gw2 = LLMGateway(disabled, _FakeRateLimiter(), _FakeRecorder())
+    with pytest.raises(Exception):
+        await gw2.call("nope", [{"role": "user", "content": "x"}])

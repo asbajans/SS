@@ -51,13 +51,17 @@ class LLMGateway:
     - enforces max_tokens (no unbounded generations)
     - Redis token-bucket rate limiter
     - fallback chain
-    - usage accounting -> token_usage rows (via Injection of a callback)
+    - usage accounting -> token_usage rows (via injected callback)
     """
 
     def __init__(self, config_resolver, rate_limiter, usage_recorder) -> None:
         self.config_resolver = config_resolver
         self.rate_limiter = rate_limiter
         self.usage_recorder = usage_recorder
+
+    @staticmethod
+    def _est_tokens(messages: list[dict[str, str]]) -> int:
+        return max(sum(len(m.get("content", "")) for m in messages or []) // 4, 1)
 
     def _mock_result(self, task_key: str) -> LLMResult:
         payload = (
@@ -79,16 +83,19 @@ class LLMGateway:
         response_json: bool = False,
         extra: dict[str, Any] | None = None,
     ) -> LLMResult:
-        if settings.llm_mock_mode or not settings.openrouter_api_key:
-            return self._mock_result(task_key)
+        cfg = await self.config_resolver(task_key)  # TaskUnavailable -> 400
 
-        cfg = await self.config_resolver(task_key)  # excludes disabled tasks
-        await self.rate_limiter.acquire(task_key, cfg.rpm, cfg.tpm)
-
-        # verify quotas before spending: run budget, user monthly budget, task daily budget
+        est_prompt_tokens = self._est_tokens(messages)
         await self.usage_recorder.assert_quota(
-            user_id=user_id, task_key=task_key, est_prompt_tokens=self._est_tokens(messages)
-        )
+            user_id=user_id, task_key=task_key, est_prompt_tokens=est_prompt_tokens
+        )  # QuotaExceeded -> 429
+
+        if settings.llm_mock_mode or not settings.openrouter_api_key:
+            mock = self._mock_result(task_key)
+            await self.usage_recorder.record(self._ctx(locals()), mock, task_key)
+            return mock
+
+        await self.rate_limiter.acquire(task_key, cfg.rpm, cfg.tpm, est_prompt_tokens)
 
         candidates = [cfg.model, *cfg.fallbacks]
         last_exc: BaseException | None = None
