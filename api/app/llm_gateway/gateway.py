@@ -54,10 +54,13 @@ class LLMGateway:
     - usage accounting -> token_usage rows (via injected callback)
     """
 
-    def __init__(self, config_resolver, rate_limiter, usage_recorder) -> None:
+    def __init__(
+        self, config_resolver, rate_limiter, usage_recorder, quota_checker=None
+    ) -> None:
         self.config_resolver = config_resolver
         self.rate_limiter = rate_limiter
         self.usage_recorder = usage_recorder
+        self.quota_checker = quota_checker
 
     @staticmethod
     def _est_tokens(messages: list[dict[str, str]]) -> int:
@@ -86,13 +89,12 @@ class LLMGateway:
         cfg = await self.config_resolver(task_key)  # TaskUnavailable -> 400
 
         est_prompt_tokens = self._est_tokens(messages)
-        await self.usage_recorder.assert_quota(
-            user_id=user_id, task_key=task_key, est_prompt_tokens=est_prompt_tokens
-        )  # QuotaExceeded -> 429
+        if self.quota_checker is not None:
+            await self.quota_checker(task_key, est_prompt_tokens)
 
         if settings.llm_mock_mode or not settings.openrouter_api_key:
             mock = self._mock_result(task_key)
-            await self.usage_recorder.record(self._ctx(locals()), mock, task_key)
+            await self.usage_recorder(self._ctx(locals()), mock, task_key)
             return mock
 
         await self.rate_limiter.acquire(task_key, cfg.rpm, cfg.tpm, est_prompt_tokens)
@@ -145,7 +147,7 @@ class LLMGateway:
                 result.status = "fallback"
                 result.fallback_used = model
 
-            await self.usage_recorder.record(self._ctx(locals()), result, task_key)
+            await self.usage_recorder(self._ctx(locals()), result, task_key)
             log.info(
                 "llm_call",
                 task=task_key,

@@ -56,12 +56,8 @@ async def chat_completions(
             usage_recorder=lambda ctx, result, tk: record_usage(
                 db, ctx, result, tk, user_id=user.id
             ),
+            quota_checker=lambda tk, est: assert_quota(db, user.id, tk, est),
         )
-
-        est_prompt_tokens = max(
-            sum(len(m.get("content", "")) for m in body.messages) // 4, 1
-        )
-        await assert_quota(db, user.id, body.task_key, est_prompt_tokens)
 
         result = await gateway.call(
             body.task_key,

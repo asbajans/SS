@@ -14,11 +14,16 @@ class _FakeRecorder:
     def __init__(self):
         self.calls = []
 
-    async def assert_quota(self, **kwargs):
-        return None
-
-    async def record(self, ctx, result, task_key):
+    async def __call__(self, ctx, result, task_key):
         self.calls.append((task_key, result))
+
+
+class _FakeQuota:
+    def __init__(self):
+        self.checks = []
+
+    async def __call__(self, task_key, est_prompt_tokens):
+        self.checks.append((task_key, est_prompt_tokens))
 
 
 class _FakeCfg:
