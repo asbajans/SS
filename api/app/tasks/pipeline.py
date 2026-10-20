@@ -6,12 +6,21 @@ from types import SimpleNamespace
 
 import structlog
 from celery import shared_task
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.config import settings
 from app.db import AsyncSessionLocal
 from app.llm_gateway.factory import build_gateway
-from app.models import Agent, Document, DocumentChunk, Ontology, Project, Run, RunEvent
+from app.models import (
+    Agent,
+    Document,
+    DocumentChunk,
+    Ontology,
+    Project,
+    Run,
+    RunEvent,
+    TokenUsage,
+)
 from app.storage import put_bytes
 from engine.actions import parse_agent_action
 from engine.loop import build_agent_messages
@@ -477,6 +486,21 @@ async def _stage_report(s, run, project, template, gateway) -> dict:
     return {"pdf_key": pdf_key, "md_key": md_key, "sections": len(sections)}
 
 
+async def _apply_usage_totals(s, run: Run) -> None:
+    row = (
+        await s.execute(
+            select(
+                func.coalesce(func.sum(TokenUsage.prompt_tokens), 0)
+                + func.coalesce(func.sum(TokenUsage.completion_tokens), 0),
+                func.coalesce(func.sum(TokenUsage.cost_usd), 0),
+            ).where(TokenUsage.run_id == run.id, TokenUsage.status == "ok")
+        )
+    ).one()
+    run.tokens_used = int(row[0] or 0)
+    run.cost_usd = float(row[1] or 0)
+    await s.commit()
+
+
 async def _run(run_id: str) -> dict:
     import redis.asyncio as aioredis
 
@@ -535,6 +559,7 @@ async def _run(run_id: str) -> dict:
             )
             await s.commit()
             await _stage_report(s, run, project, template, gateway)
+            await _apply_usage_totals(s, run)
             await _set_status(s, run_id, "completed")
             await _event(
                 s,
