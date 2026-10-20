@@ -1,4 +1,4 @@
-"""CrowdScope API configuration (12-factor, env-first)."""
+"""Social Simulation API configuration (12-factor, env-first)."""
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict

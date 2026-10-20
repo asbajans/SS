@@ -1,15 +1,15 @@
 const BASE = import.meta.env.VITE_API_URL ?? "";
 
 export function getToken() {
-  return localStorage.getItem("crowdscope_token");
+  return localStorage.getItem("ss_token");
 }
 
 export function setToken(t) {
-  localStorage.setItem("crowdscope_token", t);
+  localStorage.setItem("ss_token", t);
 }
 
 export function clearToken() {
-  localStorage.removeItem("crowdscope_token");
+  localStorage.removeItem("ss_token");
 }
 
 async function request(path, opts = {}) {

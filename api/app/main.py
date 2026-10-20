@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="CrowdScope API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Social Simulation API", version="0.1.0", lifespan=lifespan)
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(runs_router)

@@ -113,7 +113,7 @@ class LLMGateway:
                         headers={
                             "Authorization": f"Bearer {settings.openrouter_api_key}",
                             "HTTP-Referer": "https://app.example.com",
-                            "X-Title": "CrowdScope",
+                            "X-Title": "Social Simulation",
                         },
                         json=body,
                     )

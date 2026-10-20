@@ -22,7 +22,7 @@ const PATHS = {
   refresh: "M20 11a8 8 0 1 0-2 6M20 5v6h-6",
 };
 
-export default function Icon({ name, size = 18, className = "" }) {
+export default function Icon({ name, size = 18, className = "", style }) {
   const d = PATHS[name] ?? PATHS.box;
   return (
     <svg
@@ -35,6 +35,7 @@ export default function Icon({ name, size = 18, className = "" }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
+      style={style}
       aria-hidden="true"
     >
       <path d={d} />

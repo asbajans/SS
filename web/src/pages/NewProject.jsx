@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api, PROFILES, TEMPLATES } from "../api.js";
 import Icon from "../icons.jsx";
@@ -27,8 +27,12 @@ function WizardBar({ step }) {
 
 export default function NewProject() {
   const nav = useNavigate();
-  const [step, setStep] = useState(1);
-  const [tpl, setTpl] = useState("market_research");
+  const [params] = useSearchParams();
+  const initialTpl = params.get("tpl");
+  const [step, setStep] = useState(initialTpl && TEMPLATES.some((t) => t.key === initialTpl) ? 2 : 1);
+  const [tpl, setTpl] = useState(
+    initialTpl && TEMPLATES.some((t) => t.key === initialTpl) ? initialTpl : "market_research"
+  );
   const [name, setName] = useState("");
   const [language, setLanguage] = useState("tr");
   const [profile, setProfile] = useState("std");

@@ -1,4 +1,4 @@
-# CrowdScope
+# Social Simulation
 
 Simulated community research SaaS — plan `agent.md` dosyasında.
 
@@ -17,7 +17,7 @@ OpenRouter anahtarı girilmedikçe `LLM_MOCK_MODE=1` varsayılanı ile mock LLM 
 
 ## Deploy (Portainer git stack)
 
-1. Bu repo'yu GitHub'a push edin (ör. `<org>/crowdscope`).
+1. Bu repo'yu GitHub'a push edin (ör. `<org>/social-simulation`).
 2. Portainer → Stacks → **Add stack → Git repository** → `docker-compose.yml` seçin.
 3. Portainer env alanına `.env.example` içindeki değerleri girin (postgres şifresi, Stripe anahtarı, OpenRouter anahtarı).
 4. Deploy: web 3900, api 3901.

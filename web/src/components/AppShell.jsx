@@ -31,7 +31,7 @@ function pageTitle(path) {
   if (/^\/app\/projects\/.+/.test(path)) return "Proje Detayı";
   if (/^\/app\/runs\/.+/.test(path)) return "Simülasyon Detayı";
   const hit = TITLES.find(([p]) => path.startsWith(p));
-  return hit ? hit[1] : "CrowdScope";
+  return hit ? hit[1] : "Social Simulation";
 }
 
 export default function AppShell() {
@@ -66,8 +66,11 @@ export default function AppShell() {
     <div className={`shell${open ? " nav-open" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark">CS</span>
-          <span className="brand-name">CrowdScope</span>
+          <span className="brand-mark">SS</span>
+          <span className="brand-name">
+            Social Simulation
+            <small>topluluk simülasyonu</small>
+          </span>
         </div>
         <div className="nav-group-label">Çalışma Alanı</div>
         <nav className="nav">

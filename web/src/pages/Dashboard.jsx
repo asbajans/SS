@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, shortId } from "../api.js";
+import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, shortId, TEMPLATES } from "../api.js";
 import Icon from "../icons.jsx";
+
+const TILE_COLORS = [
+  "linear-gradient(135deg,#6366f1,#8b5cf6)",
+  "linear-gradient(135deg,#0d9488,#14b8a6)",
+  "linear-gradient(135deg,#f59e0b,#f97316)",
+  "linear-gradient(135deg,#ec4899,#f43f5e)",
+  "linear-gradient(135deg,#3b82f6,#06b6d4)",
+  "linear-gradient(135deg,#8b5cf6,#d946ef)",
+];
 
 function statusBadge(s) {
   if (s === "completed") return <span className="badge ok">tamamlandı</span>;
@@ -35,8 +44,8 @@ export default function Dashboard() {
     <>
       <div className="page-head">
         <div>
-          <h2>Merhaba</h2>
-          <p>Simülasyon çalışma alanınıza genel bakış.</p>
+          <h2>Çalışma alanına hoş geldiniz</h2>
+          <p>Simülasyonlarınız, projeleriniz ve kullanımınız tek ekranda.</p>
         </div>
         <Link className="btn btn-primary" to="/app/projects/new">
           <Icon name="plus" size={16} /> Yeni Simülasyon
@@ -46,25 +55,59 @@ export default function Dashboard() {
       {err && <p className="error">{err}</p>}
 
       <div className="stat-grid">
-        <div className="card stat">
-          <div className="stat-label"><Icon name="folder" size={15} /> Projeler</div>
+        <div className="card stat card-hover">
+          <span className="stat-icon"><Icon name="folder" size={18} /></span>
+          <div className="stat-label">Projeler</div>
           <div className="stat-value">{projects.length}</div>
-          <div className="stat-sub">aktif araştırma alanı</div>
+          <div className="stat-sub">araştırma alanı</div>
         </div>
-        <div className="card stat">
-          <div className="stat-label"><Icon name="activity" size={15} /> Simülasyon</div>
+        <div className="card stat card-hover">
+          <span className="stat-icon" style={{ background: "#ecfdf5", color: "#047857" }}>
+            <Icon name="activity" size={18} />
+          </span>
+          <div className="stat-label">Simülasyon</div>
           <div className="stat-value">{runs.length}</div>
           <div className="stat-sub">{active} çalışıyor · {done} tamamlandı</div>
         </div>
-        <div className="card stat">
-          <div className="stat-label"><Icon name="chart" size={15} /> Token</div>
+        <div className="card stat card-hover">
+          <span className="stat-icon" style={{ background: "#fffbeb", color: "#b45309" }}>
+            <Icon name="chart" size={18} />
+          </span>
+          <div className="stat-label">Token</div>
           <div className="stat-value">{fmtTokens(tokens)}</div>
           <div className="stat-sub">toplam kullanılan</div>
         </div>
-        <div className="card stat">
-          <div className="stat-label"><Icon name="card" size={15} /> Maliyet</div>
+        <div className="card stat card-hover">
+          <span className="stat-icon" style={{ background: "#fdf2f8", color: "#be185d" }}>
+            <Icon name="card" size={18} />
+          </span>
+          <div className="stat-label">Maliyet</div>
           <div className="stat-value">{fmtCost(cost)}</div>
           <div className="stat-sub">kümülatif LLM maliyeti</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-pad row-between" style={{ paddingBottom: 10 }}>
+          <div>
+            <h3>Hızlı başlangıç</h3>
+            <p className="small muted">Bir şablon seçin, 3 adımda simülasyonunuzu oluşturun.</p>
+          </div>
+        </div>
+        <div style={{ padding: "4px 20px 22px" }}>
+          <div className="quick-grid">
+            {TEMPLATES.map((t, i) => (
+              <Link className="quick-card" to={`/app/projects/new?tpl=${t.key}`} key={t.key}>
+                <span className="q-icon" style={{ background: TILE_COLORS[i % TILE_COLORS.length] }}>
+                  <Icon name="box" size={17} />
+                </span>
+                <span>
+                  <h4>{t.name}</h4>
+                  <p>{t.desc}</p>
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -97,7 +140,7 @@ export default function Dashboard() {
                 {recent.map((r) => (
                   <tr key={r.id}>
                     <td><Link className="mono" to={`/app/runs/${r.id}`}>{shortId(r.id)}</Link></td>
-                    <td>{r.project_name ?? "—"}</td>
+                    <td style={{ fontWeight: 600 }}>{r.project_name ?? "—"}</td>
                     <td>{statusBadge(r.status)}</td>
                     <td className="num">{r.current_round ?? 0}</td>
                     <td className="num">{fmtTokens(r.tokens_used)}</td>

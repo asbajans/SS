@@ -38,8 +38,11 @@ export default function Login({ mode = "login" }) {
     <div className="auth-wrap">
       <aside className="auth-side">
         <div className="brand" style={{ padding: 0 }}>
-          <span className="brand-mark">CS</span>
-          <span className="brand-name">CrowdScope</span>
+          <span className="brand-mark">SS</span>
+          <span className="brand-name">
+            Social Simulation
+            <small>topluluk simülasyonu</small>
+          </span>
         </div>
         <div className="stack" style={{ gap: 22 }}>
           <h2>Topluluk araştırmasını simülasyonla yapın — saha olmadan, hızlı ve tekrarlanabilir.</h2>

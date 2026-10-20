@@ -1,6 +1,6 @@
 # agent.md — Simüle Topluluk Araştırması SaaS
 
-> Çalışma başlığı: **CrowdScope** (isim TBD). Şirket: ABD, New Mexico'ya kayıtlı LLC.
+> Çalışma adı: **Social Simulation** (2026-10-20 kararla kesinleşti; önceki kod adı CrowdScope). Şirket: ABD, New Mexico'ya kayıtlı LLC.
 > Bu belge: ürün vizyonu, yasal çerçeve (ABD / New Mexico), mimari, veri modeli, pipeline, yol haritası, operasyon ve kabul kriterleri.
 > Tek gerçek dış bağımlılık: **OpenRouter**. Diğer her şey kendi konteynerlerinde çalışır.
 
