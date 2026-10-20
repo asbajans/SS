@@ -13,6 +13,10 @@ log = structlog.get_logger(__name__)
 
 _SCHEMA_PATH = Path(__file__).resolve().parent.parent / "db" / "init.sql"
 
+_MIGRATIONS = [
+    "ALTER TABLE token_usage ADD COLUMN IF NOT EXISTS agent_id UUID",
+]
+
 
 async def ensure_schema() -> None:
     if not _SCHEMA_PATH.exists():
@@ -20,11 +24,13 @@ async def ensure_schema() -> None:
         return
     async with AsyncSessionLocal() as s:
         existing = await s.scalar(select(text("to_regclass('users')")))
-        if existing:
-            return
-        await s.execute(text(_SCHEMA_PATH.read_text(encoding="utf-8")))
+        if not existing:
+            await s.execute(text(_SCHEMA_PATH.read_text(encoding="utf-8")))
+            await s.commit()
+            log.info("schema_applied", path=str(_SCHEMA_PATH))
+        for stmt in _MIGRATIONS:
+            await s.execute(text(stmt))
         await s.commit()
-        log.info("schema_applied", path=str(_SCHEMA_PATH))
 
 
 async def create_first_admin() -> None:

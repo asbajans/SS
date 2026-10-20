@@ -166,6 +166,7 @@ class TokenUsage(Base):
     user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     project_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     run_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    agent_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     task_key: Mapped[str] = mapped_column(String(64))
     model: Mapped[str] = mapped_column(String(128))
     prompt_tokens: Mapped[int] = mapped_column(Integer, default=0)

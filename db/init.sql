@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS token_usage (
     user_id           UUID,
     project_id        UUID,
     run_id            UUID,
+    agent_id          UUID,
     task_key          TEXT NOT NULL,
     model             TEXT NOT NULL,
     prompt_tokens     INT NOT NULL DEFAULT 0,
