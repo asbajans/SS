@@ -1,6 +1,7 @@
 """Gateway smoke test (offline, mock mode)."""
-import pytest
 
+import pytest
+from app.llm_gateway.config_resolver import TaskUnavailable
 from app.llm_gateway.gateway import LLMGateway
 
 
@@ -52,11 +53,9 @@ async def test_gateway_mock_mode():
 
 @pytest.mark.asyncio
 async def test_gateway_unknown_task_rejected():
-    gw = LLMGateway(_resolve, _FakeRateLimiter(), _FakeRecorder())
-    # _FakeCfg.enabled = True for every key, so use a disabling wrapper instead.
     async def disabled(task_key: str):
-        raise Exception("not found")
+        raise TaskUnavailable("not configured")
 
-    gw2 = LLMGateway(disabled, _FakeRateLimiter(), _FakeRecorder())
-    with pytest.raises(Exception):
-        await gw2.call("nope", [{"role": "user", "content": "x"}])
+    gw = LLMGateway(disabled, _FakeRateLimiter(), _FakeRecorder())
+    with pytest.raises(TaskUnavailable):
+        await gw.call("nope", [{"role": "user", "content": "x"}])
