@@ -6,18 +6,18 @@ from types import SimpleNamespace
 
 import structlog
 from celery import shared_task
-from sqlalchemy import select
-
-from app.config import settings
-from app.db import AsyncSessionLocal
-from app.llm_gateway.factory import build_gateway
-from app.models import Agent, DocumentChunk, Ontology, Project, Run, RunEvent
 from engine.actions import parse_agent_action
 from engine.loop import build_agent_messages
 from engine.ontology import build_ontology_prompt, parse_ontology
 from engine.population import build_persona_prompt, parse_personas
 from engine.scheduler import ScheduleConfig, pick_active_agents
 from engine.templates import get_template
+from sqlalchemy import select
+
+from app.config import settings
+from app.db import AsyncSessionLocal
+from app.llm_gateway.factory import build_gateway
+from app.models import Agent, DocumentChunk, Ontology, Project, Run, RunEvent
 
 log = structlog.get_logger(__name__)
 

@@ -1,14 +1,21 @@
 """Admin router: manage per-task model configs (model, quotas, fallbacks)."""
+import time
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_user, get_db
+from app.config import settings
 from app.llm_gateway.config_resolver import invalidate_config
 from app.models import ModelConfig, TokenUsage
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+_OR_CACHE: dict = {"ts": 0.0, "models": []}
+_CACHE_TTL = 600.0
 
 
 def admin_only(user=Depends(current_user)) -> None:
@@ -72,6 +79,46 @@ async def upsert_model(task_key: str, data: ModelConfigIn, db: AsyncSession = De
     await db.commit()
     invalidate_config(task_key)
     return {"task_key": task_key, "saved": True}
+
+
+@router.get("/openrouter/models", dependencies=[Depends(admin_only)])
+async def openrouter_models(refresh: bool = False):
+    now = time.time()
+    if not refresh and _OR_CACHE["models"] and now - _OR_CACHE["ts"] < _CACHE_TTL:
+        return _OR_CACHE["models"]
+    try:
+        headers = {}
+        if settings.openrouter_api_key:
+            headers["Authorization"] = f"Bearer {settings.openrouter_api_key}"
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(f"{settings.openrouter_base_url}/models", headers=headers)
+            resp.raise_for_status()
+            data = resp.json().get("data", [])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502, detail=f"OpenRouter model listesi alınamadı: {exc}"
+        ) from None
+
+    models = []
+    for item in data:
+        pricing = item.get("pricing") or {}
+        try:
+            prompt = float(pricing.get("prompt", 0) or 0) * 1_000_000
+            completion = float(pricing.get("completion", 0) or 0) * 1_000_000
+        except (TypeError, ValueError):
+            prompt = completion = 0.0
+        models.append(
+            {
+                "id": item.get("id"),
+                "name": item.get("name") or item.get("id"),
+                "context_length": item.get("context_length"),
+                "prompt_per_mtok": round(prompt, 4),
+                "completion_per_mtok": round(completion, 4),
+            }
+        )
+    models.sort(key=lambda m: m["id"] or "")
+    _OR_CACHE.update(ts=now, models=models)
+    return models
 
 
 @router.get("/usage/summary", dependencies=[Depends(admin_only)])

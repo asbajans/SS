@@ -1,6 +1,7 @@
 """Gateway smoke test (offline, mock mode)."""
 
 import pytest
+
 from app.llm_gateway.config_resolver import TaskUnavailable
 from app.llm_gateway.gateway import LLMGateway
 
