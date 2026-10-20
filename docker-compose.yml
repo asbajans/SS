@@ -163,7 +163,6 @@ services:
   prometheus:
     build:
       context: ops/observability/prometheus
-    image: 1socialsim-prometheus:latest
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -185,7 +184,6 @@ services:
   promtail:
     build:
       context: ops/observability/promtail
-    image: 1socialsim-promtail:latest
     restart: unless-stopped
     depends_on:
       - loki
@@ -196,7 +194,6 @@ services:
   grafana:
     build:
       context: ops/observability/grafana
-    image: 1socialsim-grafana:latest
     restart: unless-stopped
     depends_on:
       - prometheus
