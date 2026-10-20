@@ -8,6 +8,7 @@ import Admin from "./pages/Admin.jsx";
 import Billing from "./pages/Billing.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
 import NewProject from "./pages/NewProject.jsx";
 import ProjectDetail from "./pages/ProjectDetail.jsx";
 import Projects from "./pages/Projects.jsx";
@@ -22,8 +23,8 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/login" element={<Login mode="login" />} />
-        <Route path="/register" element={<Login mode="register" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/app" element={<AppShell />}>
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />

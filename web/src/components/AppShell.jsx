@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
-import { api, logout, TEMPLATES } from "../api.js";
+import { api, logout } from "../api.js";
 import Icon from "../icons.jsx";
 
 const NAV = [
-  { to: "/app", end: true, icon: "grid", label: "Genel Bakış" },
+  { to: "/app", end: true, icon: "grid", label: "Panoya Başla" },
   { to: "/app/projects", icon: "folder", label: "Projeler" },
   { to: "/app/runs", icon: "activity", label: "Simülasyonlar" },
   { to: "/app/reports", icon: "doc", label: "Raporlar" },
@@ -44,9 +44,7 @@ export default function AppShell() {
     api("/api/auth/me").then(setUser).catch((e) => setErr(e.message));
   }, []);
 
-  useEffect(() => {
-    setOpen(false);
-  }, [loc.pathname]);
+  useEffect(() => { setOpen(false); }, [loc.pathname]);
 
   if (err) {
     return (
@@ -56,22 +54,14 @@ export default function AppShell() {
       </div>
     );
   }
-  if (!user) {
-    return <div className="shell-loading"><div className="spinner" /></div>;
-  }
+  if (!user) return <div className="shell-loading"><div className="spinner" /></div>;
 
   const initials = (user.email || "?").slice(0, 2).toUpperCase();
 
   return (
     <div className={`shell${open ? " nav-open" : ""}`}>
       <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">SS</span>
-          <span className="brand-name">
-            Social Simulation
-            <small>topluluk simülasyonu</small>
-          </span>
-        </div>
+        <div className="brand">SS</div>
         <div className="nav-group-label">Çalışma Alanı</div>
         <nav className="nav">
           {NAV.map((n) => (
@@ -113,12 +103,7 @@ export default function AppShell() {
 
       <div className="main-col">
         <header className="topbar">
-          <button
-            className="burger"
-            type="button"
-            aria-label="Menü"
-            onClick={() => setOpen((v) => !v)}
-          >
+          <button className="burger" type="button" aria-label="Menü" onClick={() => setOpen((v) => !v)}>
             <span /><span /><span />
           </button>
           <h1 className="page-title">{pageTitle(loc.pathname)}</h1>
@@ -131,12 +116,9 @@ export default function AppShell() {
             </Link>
           </div>
         </header>
-        <main className="content">
-          <Outlet context={user} />
-        </main>
+        <main className="content"><Outlet context={user} /></main>
         <footer className="app-foot">
-          Bu platformun tüm çıktıları simülasyon ürünüdür; gerçek anket veya kamuoyu
-          ölçümü değildir. Şablonlar: {TEMPLATES.length} kategori.
+          Tüm çıktılar simülasyon ürünüdür; gerçek anket veya kamuoyu ölçümü değildir.
         </footer>
       </div>
     </div>

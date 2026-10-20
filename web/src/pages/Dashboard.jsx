@@ -5,7 +5,7 @@ import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, shortId, TEMPLATES }
 import Icon from "../icons.jsx";
 
 const TILE_COLORS = [
-  "linear-gradient(135deg,#6366f1,#8b5cf6)",
+  "linear-gradient(135deg,#4f46e5,#8b5cf6)",
   "linear-gradient(135deg,#0d9488,#14b8a6)",
   "linear-gradient(135deg,#f59e0b,#f97316)",
   "linear-gradient(135deg,#ec4899,#f43f5e)",
@@ -27,10 +27,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([api("/api/projects"), api("/api/runs")])
-      .then(([p, r]) => {
-        setProjects(p);
-        setRuns(r);
-      })
+      .then(([p, r]) => { setProjects(p); setRuns(r); })
       .catch((e) => setErr(e.message));
   }, []);
 
@@ -55,56 +52,26 @@ export default function Dashboard() {
       {err && <p className="error">{err}</p>}
 
       <div className="stat-grid">
-        <div className="card stat card-hover">
-          <span className="stat-icon"><Icon name="folder" size={18} /></span>
-          <div className="stat-label">Projeler</div>
-          <div className="stat-value">{projects.length}</div>
-          <div className="stat-sub">araştırma alanı</div>
-        </div>
-        <div className="card stat card-hover">
-          <span className="stat-icon" style={{ background: "#ecfdf5", color: "#047857" }}>
-            <Icon name="activity" size={18} />
-          </span>
-          <div className="stat-label">Simülasyon</div>
-          <div className="stat-value">{runs.length}</div>
-          <div className="stat-sub">{active} çalışıyor · {done} tamamlandı</div>
-        </div>
-        <div className="card stat card-hover">
-          <span className="stat-icon" style={{ background: "#fffbeb", color: "#b45309" }}>
-            <Icon name="chart" size={18} />
-          </span>
-          <div className="stat-label">Token</div>
-          <div className="stat-value">{fmtTokens(tokens)}</div>
-          <div className="stat-sub">toplam kullanılan</div>
-        </div>
-        <div className="card stat card-hover">
-          <span className="stat-icon" style={{ background: "#fdf2f8", color: "#be185d" }}>
-            <Icon name="card" size={18} />
-          </span>
-          <div className="stat-label">Maliyet</div>
-          <div className="stat-value">{fmtCost(cost)}</div>
-          <div className="stat-sub">kümülatif LLM maliyeti</div>
-        </div>
+        <div className="card stat"><span className="stat-icon"><Icon name="folder" size={18} /></span>
+          <div className="stat-label">Projeler</div><div className="stat-value">{projects.length}</div><div className="stat-sub">araştırma alanı</div></div>
+        <div className="card stat"><span className="stat-icon" style={{ background: "#ecfdf5", color: "#047857" }}><Icon name="activity" size={18} /></span>
+          <div className="stat-label">Simülasyon</div><div className="stat-value">{runs.length}</div><div className="stat-sub">{active} çalışıyor · {done} tamamlandı</div></div>
+        <div className="card stat"><span className="stat-icon" style={{ background: "#fffbeb", color: "#b45309" }}><Icon name="chart" size={18} /></span>
+          <div className="stat-label">Token</div><div className="stat-value">{fmtTokens(tokens)}</div><div className="stat-sub">toplam kullanılan</div></div>
+        <div className="card stat"><span className="stat-icon" style={{ background: "#fdf2f8", color: "#be185d" }}><Icon name="card" size={18} /></span>
+          <div className="stat-label">Maliyet</div><div className="stat-value">{fmtCost(cost)}</div><div className="stat-sub">kümülatif LLM maliyeti</div></div>
       </div>
 
       <div className="card">
         <div className="card-pad row-between" style={{ paddingBottom: 10 }}>
-          <div>
-            <h3>Hızlı başlangıç</h3>
-            <p className="small muted">Bir şablon seçin, 3 adımda simülasyonunuzu oluşturun.</p>
-          </div>
+          <div><h3>Hızlı başlangıç</h3><p className="small muted">Bir şablon seçin, 3 adımda simülasyonunuzu oluşturun.</p></div>
         </div>
         <div style={{ padding: "4px 20px 22px" }}>
-          <div className="quick-grid">
+          <div className="choice-grid">
             {TEMPLATES.map((t, i) => (
-              <Link className="quick-card" to={`/app/projects/new?tpl=${t.key}`} key={t.key}>
-                <span className="q-icon" style={{ background: TILE_COLORS[i % TILE_COLORS.length] }}>
-                  <Icon name="box" size={17} />
-                </span>
-                <span>
-                  <h4>{t.name}</h4>
-                  <p>{t.desc}</p>
-                </span>
+              <Link className="choice" to={`/app/projects/new?tpl=${t.key}`} key={t.key}>
+                <span className="c-icon" style={{ background: TILE_COLORS[i % TILE_COLORS.length] }}><Icon name="box" size={17} /></span>
+                <span><h4>{t.name}</h4><p>{t.desc}</p></span>
               </Link>
             ))}
           </div>
@@ -113,39 +80,27 @@ export default function Dashboard() {
 
       <div className="card">
         <div className="card-pad row-between" style={{ paddingBottom: 10 }}>
-          <h3>Son simülasyonlar</h3>
-          <Link className="small" to="/app/runs">tümü →</Link>
+          <h3>Son simülasyonlar</h3><Link className="small" to="/app/runs">tümü →</Link>
         </div>
         {recent.length === 0 ? (
           <div style={{ padding: "8px 20px 24px" }}>
-            <div className="empty">
-              <span className="empty-icon"><Icon name="play" size={22} /></span>
+            <div className="empty"><span className="empty-icon"><Icon name="play" size={22} /></span>
               <h3>Henüz simülasyon yok</h3>
               <p>Bir proje oluşturun, şablon seçin ve topluluk simülasyonunuzu başlatın.</p>
-              <Link className="btn btn-primary" to="/app/projects/new">
-                <Icon name="plus" size={15} /> İlk simülasyonu oluştur
-              </Link>
+              <Link className="btn btn-primary" to="/app/projects/new"><Icon name="plus" size={15} /> İlk simülasyonu oluştur</Link>
             </div>
           </div>
         ) : (
           <div className="table-wrap">
             <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Koşu</th><th>Proje</th><th>Durum</th><th className="num">Tur</th>
-                  <th className="num">Token</th><th className="num">Maliyet</th><th>Başlangıç</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Koşu</th><th>Proje</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th className="num">Maliyet</th><th>Başlangıç</th></tr></thead>
               <tbody>
                 {recent.map((r) => (
                   <tr key={r.id}>
                     <td><Link className="mono" to={`/app/runs/${r.id}`}>{shortId(r.id)}</Link></td>
                     <td style={{ fontWeight: 600 }}>{r.project_name ?? "—"}</td>
                     <td>{statusBadge(r.status)}</td>
-                    <td className="num">{r.current_round ?? 0}</td>
-                    <td className="num">{fmtTokens(r.tokens_used)}</td>
-                    <td className="num">{fmtCost(r.cost_usd)}</td>
-                    <td className="muted small">{fmtDate(r.created_at)}</td>
+                    <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="num">{fmtCost(r.cost_usd)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

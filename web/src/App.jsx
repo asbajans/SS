@@ -3,35 +3,17 @@ import { Link } from "react-router-dom";
 import { TEMPLATES } from "./api.js";
 import Icon from "./icons.jsx";
 
-const TILE_COLORS = [
-  "linear-gradient(135deg,#6366f1,#8b5cf6)",
-  "linear-gradient(135deg,#0d9488,#14b8a6)",
-  "linear-gradient(135deg,#f59e0b,#f97316)",
-  "linear-gradient(135deg,#ec4899,#f43f5e)",
-  "linear-gradient(135deg,#3b82f6,#06b6d4)",
-  "linear-gradient(135deg,#8b5cf6,#d946ef)",
-];
-
 const STEPS = [
-  {
-    t: "Kaynaklarınızı yükleyin",
-    d: "Rapor, brief, haber metni veya senaryo dosyalarınızı projeye ekleyin; sistem bilgi tabanını kurar.",
-  },
-  {
-    t: "Topluluğu simüle edin",
-    d: "Yüzlerce sentetik ajan, kişilikleri ve hatıralarıyla forum benzeri ortamlarda etkileşime girer.",
-  },
-  {
-    t: "Kaynakçalı raporu alın",
-    d: "Olaylara ve belgelere dayalı, simülasyon ibaresi taşıyan detaylı analiz raporu üretin.",
-  },
+  { t: "Kaynakları yükle", d: "Rapor, brief veya metin dosyalarını projeye ekleyin; sistem bilgi tabanını kurar." },
+  { t: "Topluluğu simüle et", d: "Yüzlerce sentetik ajan, kişilikleri ve hatıralarıyla forum benzeri ortamda etkileşime girer." },
+  { t: "Raporu alın", d: "Olaylara ve belgelere dayalı, simülasyon etiketli detaylı analiz raporu üretin." },
 ];
 
 export default function App() {
   return (
     <div className="landing">
       <nav className="landing-nav">
-        <div className="brand" style={{ padding: 0 }}>
+        <div className="brand">
           <span className="brand-mark">SS</span>
           <span className="brand-name">
             Social Simulation
@@ -45,21 +27,17 @@ export default function App() {
       </nav>
 
       <header className="landing-hero">
-        <span className="hero-tag">
-          <Icon name="users" size={15} /> Sentetik topluluk simülasyonu
-        </span>
+        <span className="hero-tag"><Icon name="users" size={15} /> Sentetik topluluk simülasyonu</span>
         <h1>
           Geleceği tahmin etmek için <em>binlerce ajanı</em> aynı dünyaya yerleştirin
         </h1>
         <p className="lead">
-          Konunuzu tanımlayın; sentetik bir topluluk kamuoyu, pazar veya kriz senaryonuzda
-          etkileşime girsin. Çıktı: kaynakçalı, denetlenebilir ve{" "}
+          Konunuzu tanımlayın; sentetik bir topluluk kamuoyu, pazar veya kriz senaryonuzda etkileşime girsin.
+          Çıktı: kaynakçalı, denetlenebilir ve{" "}
           <strong style={{ color: "#e8edf7" }}>simülasyon etiketli</strong> raporlar.
         </p>
         <div className="hero-cta">
-          <Link className="btn btn-primary" to="/register">
-            <Icon name="play" size={16} /> Simülasyon oluştur
-          </Link>
+          <Link className="btn btn-primary" to="/register"><Icon name="play" size={16} /> Simülasyon oluştur</Link>
           <Link className="btn btn-dark" to="/login">Zaten üyeyim</Link>
         </div>
         <div className="hero-stats">
@@ -69,18 +47,17 @@ export default function App() {
           <div><b>$0,10+</b><span>simülasyon başına</span></div>
         </div>
         <div className="disclaimer-strip">
-          Bu ürünün tüm çıktıları simülasyon ürünüdür; gerçek anket, kamuoyu yoklaması veya
-          araştırma ölçümü olarak sunulamaz.
+          Tüm çıktılar simülasyon ürünüdür; gerçek anket veya kamuoyu ölçümü değildir.
         </div>
       </header>
 
-      <section className="landing-section" style={{ paddingTop: 24 }}>
+      <section className="landing-section">
         <h2>Altı hazır araştırma şablonu</h2>
         <p className="sub">Konu-agnostik motor; her şablon kendi ontoloji ve aksiyon uzayıyla gelir.</p>
         <div className="feature-grid">
           {TEMPLATES.map((t, i) => (
             <article className="feature" key={t.key}>
-              <span className="f-icon" style={{ background: TILE_COLORS[i % TILE_COLORS.length] }}>
+              <span className="f-icon" style={{ background: i % 2 === 0 ? "var(--grad)" : "linear-gradient(135deg,#0d9488,#14b8a6)" }}>
                 <Icon name="box" />
               </span>
               <h3>{t.name}</h3>
@@ -108,21 +85,20 @@ export default function App() {
         <h2>İlk simülasyonunuzu bugün çalıştırın</h2>
         <p>Ücretsiz plan aylık 1M token ile 50 ajanlık simülasyonlara izin verir.</p>
         <Link className="btn btn-primary btn-lg" to="/register">
-          <Icon name="arrowLeft" size={16} style={{ transform: "rotate(180deg)" }} />
-          Hesap oluştur
+          <Icon name="arrowLeft" size={16} style={{ transform: "rotate(180deg)" }} /> Hesap oluştur
         </Link>
       </section>
 
       <footer className="landing-foot">
         <div className="legal">
-          <a href="#toS">Kullanım Şartları</a>
+          <a href="#tos">Kullanım Şartları</a>
           <a href="#privacy">Gizlilik Bildirimi</a>
           <a href="#dmca">DMCA</a>
           <a href="#contact">İletişim</a>
         </div>
         <p>
-          Social Simulation — sentetik topluluk simülasyonu platformu. Ajanlar tamamen
-          kurgusaldır; gerçek kişisel veri toplanmaz. © {new Date().getFullYear()}
+          Social Simulation — sentetik topluluk simülasyonu platformu. Ajanlar tamamen kurgusaldır;
+          gerçek kişisel veri toplanmaz. © {new Date().getFullYear()}
         </p>
       </footer>
     </div>
