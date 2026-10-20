@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = ""
     stripe_publishable_key: str = ""
     stripe_monthly_price_id: str = ""
+    stripe_price_starter: str = ""
+    stripe_price_pro: str = ""
+    stripe_price_credit_5m: str = ""
+    public_base_url: str = "http://localhost:3900"
 
     # engine guards
     engine_max_agents: int = 300

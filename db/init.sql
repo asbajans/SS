@@ -15,8 +15,28 @@ CREATE TABLE IF NOT EXISTS users (
     monthly_token_used     BIGINT NOT NULL DEFAULT 0,
     billing_status         TEXT NOT NULL DEFAULT 'none', -- none|active|past_due|canceled
     stripe_customer_id     TEXT,
+    stripe_subscription_id TEXT,
+    credit_balance         BIGINT NOT NULL DEFAULT 0,
+    billing_period_end     TIMESTAMPTZ,
+    usage_period_start     TIMESTAMPTZ,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS billing_events (
+    stripe_event_id TEXT PRIMARY KEY,
+    type            TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS credit_ledger (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     UUID,
+    delta       BIGINT NOT NULL,
+    reason      TEXT NOT NULL,
+    stripe_ref  TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_credit_ledger_user ON credit_ledger(user_id, created_at);
 
 -- ---------- model_configs (admin-managed, per-task) ----------
 CREATE TABLE IF NOT EXISTS model_configs (

@@ -36,6 +36,24 @@ _MIGRATIONS = [
         processed_at TIMESTAMPTZ
     )""",
     "CREATE INDEX IF NOT EXISTS idx_privacy_status ON privacy_requests(status, requested_at)",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance BIGINT NOT NULL DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_period_end TIMESTAMPTZ",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS usage_period_start TIMESTAMPTZ",
+    """CREATE TABLE IF NOT EXISTS billing_events (
+        stripe_event_id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )""",
+    """CREATE TABLE IF NOT EXISTS credit_ledger (
+        id BIGSERIAL PRIMARY KEY,
+        user_id UUID,
+        delta BIGINT NOT NULL,
+        reason TEXT NOT NULL,
+        stripe_ref TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_credit_ledger_user ON credit_ledger(user_id, created_at)",
 ]
 
 

@@ -9,6 +9,7 @@ from sqlalchemy import delete, or_, select, update
 from app.db import AsyncSessionLocal
 from app.models import (
     Agent,
+    CreditLedger,
     Document,
     DocumentChunk,
     Ontology,
@@ -46,6 +47,7 @@ async def _delete_user(user_id: str, request_id: str) -> dict:
             ).all() if project_ids else []
             if run_ids:
                 await s.execute(delete(RunEvent).where(RunEvent.run_id.in_(run_ids)))
+            await s.execute(delete(CreditLedger).where(CreditLedger.user_id == user_id))
             await s.execute(
                 update(TokenUsage)
                 .where(

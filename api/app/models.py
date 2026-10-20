@@ -41,6 +41,29 @@ class User(Base):
     monthly_token_used: Mapped[int] = mapped_column(BigInteger, default=0)
     billing_status: Mapped[str] = mapped_column(String(32), default="none")
     stripe_customer_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    credit_balance: Mapped[int] = mapped_column(BigInteger, default=0)
+    billing_period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    usage_period_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class BillingEvent(Base):
+    __tablename__ = "billing_events"
+    stripe_event_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    type: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CreditLedger(Base):
+    __tablename__ = "credit_ledger"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True, index=True)
+    delta: Mapped[int] = mapped_column(BigInteger)
+    reason: Mapped[str] = mapped_column(String(64))
+    stripe_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
