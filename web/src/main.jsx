@@ -17,6 +17,7 @@ import RunDetail from "./pages/RunDetail.jsx";
 import Runs from "./pages/Runs.jsx";
 import Settings from "./pages/Settings.jsx";
 import { getToken } from "./api.js";
+import "./styles.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
