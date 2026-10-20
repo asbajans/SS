@@ -154,14 +154,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       SCHEDULE: "@daily"
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 6
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_KEEP_WEEKS: ${BACKUP_KEEP_WEEKS:-4}
+      BACKUP_KEEP_MONTHS: ${BACKUP_KEEP_MONTHS:-6}
     volumes:
       - backup-data:/backups
 
   prometheus:
-    image: prom/prometheus:v3.1.0
+    build:
+      context: ops/observability/prometheus
+    image: 1socialsim-prometheus:latest
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -169,7 +171,6 @@ services:
       - --storage.tsdb.retention.time=15d
     volumes:
       - prometheus-data:/prometheus
-      - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "127.0.0.1:3921:9090"
 
@@ -182,17 +183,20 @@ services:
       - "127.0.0.1:3922:3100"
 
   promtail:
-    image: grafana/promtail:3.4.2
+    build:
+      context: ops/observability/promtail
+    image: 1socialsim-promtail:latest
     restart: unless-stopped
     depends_on:
       - loki
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./ops/observability/promtail.yml:/etc/promtail/config.yml:ro
     command: ["-config.file=/etc/promtail/config.yml"]
 
   grafana:
-    image: grafana/grafana:11.5.2
+    build:
+      context: ops/observability/grafana
+    image: 1socialsim-grafana:latest
     restart: unless-stopped
     depends_on:
       - prometheus
@@ -204,7 +208,6 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./ops/observability/grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
       - "127.0.0.1:3920:3000"
 
