@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.admin_api import router as admin_router
 from app.auth import router as auth_router
 from app.billing_api import router as billing_router
+from app.documents_api import router as documents_router
 from app.health import router as health_router
 from app.llm_gateway.router import router as llm_router
 from app.runs_api import router as runs_router
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(billing_router)
     app.include_router(llm_router)
+    app.include_router(documents_router)
     return app
 
 

@@ -125,3 +125,54 @@ export function fmtDate(iso) {
 export function shortId(id) {
   return id ? String(id).slice(0, 8) : "—";
 }
+
+export async function uploadDocument(projectId, file) {
+  const token = getToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch(`${BASE}/api/projects/${projectId}/documents`, {
+    method: "POST",
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+    body: fd,
+  });
+  const data = await r.json().catch(() => null);
+  if (!r.ok) {
+    const detail = data?.detail;
+    throw new Error(typeof detail === "string" ? detail : `Hata ${r.status}`);
+  }
+  return data;
+}
+
+export async function streamRunEvents(runId, { onStatus, onEvent, signal } = {}) {
+  const token = getToken();
+  const r = await fetch(`${BASE}/api/runs/${runId}/events/stream`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+    signal,
+  });
+  if (!r.ok || !r.body) throw new Error(`SSE Hata ${r.status}`);
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) >= 0) {
+      const chunk = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      let evt = "message";
+      let data = "";
+      for (const line of chunk.split("\n")) {
+        if (line.startsWith("event: ")) evt = line.slice(7).trim();
+        else if (line.startsWith("data: ")) data += line.slice(6);
+      }
+      if (!data) continue;
+      let parsed;
+      try { parsed = JSON.parse(data); } catch { continue; }
+      if (evt === "status") onStatus?.(parsed);
+      else if (evt === "run_event") onEvent?.(parsed);
+      else if (evt === "end") return;
+    }
+  }
+}

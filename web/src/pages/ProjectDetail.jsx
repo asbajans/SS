@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, PROFILES, shortId, TEMPLATES } from "../api.js";
+import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, PROFILES, shortId, TEMPLATES, uploadDocument } from "../api.js";
 import Icon from "../icons.jsx";
 
 const TABS = ["Genel Bakış", "Simülasyonlar", "Belgeler", "Ontoloji & Ajanlar", "Rapor"];
@@ -27,13 +27,25 @@ export default function ProjectDetail() {
   const [tab, setTab] = useState(0);
   const [err, setErr] = useState(null);
   const [starting, setStarting] = useState(false);
+  const [docs, setDocs] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [ontology, setOntology] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [docMsg, setDocMsg] = useState(null);
 
   const load = useCallback(() => {
-    Promise.all([api("/api/projects"), api("/api/runs")])
-      .then(([ps, rs]) => {
+    Promise.all([
+      api("/api/projects"),
+      api("/api/runs"),
+      api(`/api/projects/${id}/documents`),
+      api(`/api/projects/${id}/agents`),
+      api(`/api/projects/${id}/ontology`),
+    ])
+      .then(([ps, rs, ds, ags, onto]) => {
         const p = ps.find((x) => x.id === id);
         if (!p) { setErr("Proje bulunamadı"); return; }
         setProject(p); setRuns(rs.filter((r) => r.project_id === id));
+        setDocs(ds); setAgents(ags); setOntology(onto);
       }).catch((e) => setErr(e.message));
   }, [id]);
 
@@ -52,6 +64,27 @@ export default function ProjectDetail() {
       const r = await api(`/api/projects/${id}/runs`, { method: "POST" });
       nav(`/app/runs/${r.run_id}`);
     } catch (e) { setErr(e.message); setStarting(false); }
+  }
+
+  async function onUpload(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true); setDocMsg(null); setErr(null);
+    try {
+      const d = await uploadDocument(id, file);
+      setDocMsg(`${d.filename} yüklendi; metin çıkarma ve gömme kuyruğa alındı.`);
+      load();
+      setTimeout(load, 6000);
+    } catch (ex) { setErr(ex.message); }
+    setUploading(false);
+  }
+
+  async function removeDoc(docId) {
+    try {
+      await api(`/api/documents/${docId}`, { method: "DELETE" });
+      load();
+    } catch (ex) { setErr(ex.message); }
   }
 
   if (err && !project) {
@@ -151,17 +184,71 @@ export default function ProjectDetail() {
       )}
 
       {tab === 2 && (
-        <div className="dropzone disabled"><Icon name="upload" size={26} /><strong>Belge yükleme bir sonraki fazda</strong>
-          <p className="small muted" style={{ maxWidth: 420 }}>
-            PDF ve düz metin kaynaklarınız MinIO&apos;ya yüklenecek, gömme ve hibrit arama ile rapor ajanına bağlanacak.
-          </p>
+        <div className="card card-pad stack">
+          <div className="upload-row">
+            <label className="btn btn-primary" htmlFor="docfile">
+              <Icon name="upload" size={16} /> {uploading ? "Yükleniyor…" : "Belge Yükle"}
+            </label>
+            <input id="docfile" type="file" accept=".txt,.md,.pdf" onChange={onUpload} disabled={uploading} />
+            <span className="small muted">PDF / TXT / MD · en fazla 20 MB</span>
+          </div>
+          {docMsg && <p className="small" style={{ color: "var(--ok, #047857)" }}>{docMsg}</p>}
+          {docs.length === 0 ? (
+            <div className="empty"><span className="empty-icon"><Icon name="doc" size={22} /></span>
+              <h3>Kaynak belge yok</h3>
+              <p>Belge eklemezseniz simülasyon proje adı ve şablon açıklamasıyla başlar; kaynak eklemek çıktıları zenginleştirir.</p>
+            </div>
+          ) : (
+            <div>
+              {docs.map((d) => (
+                <div className="doc-row" key={d.id}>
+                  <div>
+                    <div style={{ fontWeight: 650 }}>{d.filename}</div>
+                    <div className="small muted">{(d.size / 1024).toFixed(1)} KB · {d.chunks ? `${d.chunks} parça` : "işleniyor…"}</div>
+                  </div>
+                  <button className="btn" type="button" onClick={() => removeDoc(d.id)}>Sil</button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {tab === 3 && (
-        <div className="empty"><span className="empty-icon"><Icon name="users" size={22} /></span>
-          <h3>Ontoloji ve ajanlar henüz üretilmedi</h3>
-          <p>Simülasyon başlatıldığında sistem belgelerden ontoloji çıkarır ve persona popülasyonu oluşturur; bu sekmede ajan kartlarını göreceksiniz.</p>
+        <div className="stack">
+          {ontology?.exists && (
+            <div className="card card-pad">
+              <h3 style={{ marginBottom: 10 }}>Ontoloji</h3>
+              <div className="agent-attrs">
+                {(ontology.entity_types?.items ?? []).map((x) => <span className="attr-chip" key={`e-${x}`}>{x}</span>)}
+                {(ontology.relation_types?.items ?? []).map((x) => <span className="attr-chip" key={`r-${x}`} style={{ background: "#ecfeff", color: "#0e7490" }}>{x}</span>)}
+              </div>
+              {ontology.seed_summary && <p className="small muted" style={{ marginTop: 10 }}>{ontology.seed_summary}</p>}
+            </div>
+          )}
+          {agents.length === 0 ? (
+            <div className="empty"><span className="empty-icon"><Icon name="users" size={22} /></span>
+              <h3>Ontoloji ve ajanlar henüz üretilmedi</h3>
+              <p>Simülasyon başlatıldığında sistem belgelerden ontoloji çıkarır ve persona popülasyonu oluşturur; bu sekmede ajan kartlarını göreceksiniz.</p>
+            </div>
+          ) : (
+            <div className="card card-pad">
+              <h3 style={{ marginBottom: 12 }}>Ajanlar ({agents.length})</h3>
+              <div className="agent-grid">
+                {agents.map((a) => (
+                  <div className="agent-card" key={a.id}>
+                    <h4>{a.name}</h4>
+                    <p>{a.bio}</p>
+                    <div className="agent-attrs">
+                      {Object.entries(a.attributes ?? {}).slice(0, 6).map(([k, v]) => (
+                        <span className="attr-chip" key={k}>{k}: {String(v)}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

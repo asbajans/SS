@@ -29,13 +29,13 @@ dependencies = [
   "pyjwt>=2.8",
   "pgvector>=0.2.5",
   "pypdf>=4.0",
+  "python-multipart>=0.0.9",
+  "miniopy-async>=1.20",
   "structlog>=24.1",
 ]
 
 [project.optional-dependencies]
-prod = [
-  "miniopy-async>=1.20",
-]
+prod = []
 dev = [
   "pytest>=8.0",
   "pytest-asyncio>=0.23",

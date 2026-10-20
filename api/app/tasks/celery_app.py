@@ -19,4 +19,5 @@ celery_app.conf.update(
     task_soft_time_limit=3600 * 3 - 60,
 )
 
+import app.tasks.ingest  # noqa: E402,F401  (registers "ingest.document")
 import app.tasks.pipeline  # noqa: E402,F401  (registers shared_task "pipeline.run")

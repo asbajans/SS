@@ -1,24 +1,75 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, STAGES, stageIndex } from "../api.js";
+import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, STAGES, stageIndex, streamRunEvents } from "../api.js";
 import Icon from "../icons.jsx";
+
+function eventText(ev) {
+  const p = ev.payload ?? {};
+  if (p.message) return p.message;
+  if (p.content) return p.content;
+  if (p.action) return p.action;
+  return ev.event_type;
+}
 
 export default function RunDetail() {
   const { id } = useParams();
   const [run, setRun] = useState(null);
+  const [events, setEvents] = useState([]);
   const [err, setErr] = useState(null);
+  const [canceling, setCanceling] = useState(false);
+  const seen = useRef(new Set());
 
-  const load = useCallback(() => api(`/api/runs/${id}`).then(setRun).catch((e) => setErr(e.message)), [id]);
+  const load = useCallback(
+    () => api(`/api/runs/${id}`).then(setRun).catch((e) => setErr(e.message)),
+    [id]
+  );
 
-  useEffect(() => { load(); }, [load]);
+  const loadEvents = useCallback(
+    () =>
+      api(`/api/runs/${id}/events`)
+        .then((rows) => {
+          setEvents(rows);
+          seen.current = new Set(rows.map((r) => r.id));
+        })
+        .catch(() => {}),
+    [id]
+  );
+
+  useEffect(() => { load(); loadEvents(); }, [load, loadEvents]);
 
   const active = run && ACTIVE_STATUSES.includes(run.status);
 
   useEffect(() => {
     if (!active) return undefined;
-    const t = setInterval(load, 3000); return () => clearInterval(t);
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
   }, [active, load]);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    const controller = new AbortController();
+    streamRunEvents(id, {
+      signal: controller.signal,
+      onStatus: (s) =>
+        setRun((prev) => (prev ? { ...prev, ...s } : prev)),
+      onEvent: (ev) => {
+        if (seen.current.has(ev.id)) return;
+        seen.current.add(ev.id);
+        setEvents((prev) => [...prev, ev]);
+      },
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [active, id]);
+
+  async function cancelRun() {
+    setCanceling(true);
+    try {
+      await api(`/api/runs/${id}/cancel`, { method: "POST" });
+      load();
+    } catch (e) { setErr(e.message); }
+    setCanceling(false);
+  }
 
   if (err && !run) {
     return (<><p className="error">{err}</p><Link className="btn" to="/app/runs">← Simülasyonlara dön</Link></>);
@@ -27,6 +78,7 @@ export default function RunDetail() {
 
   const idx = stageIndex(run.status);
   const failed = run.status === "failed";
+  const canceled = run.status === "canceled";
 
   return (
     <>
@@ -35,14 +87,21 @@ export default function RunDetail() {
           <span className="crumb"><Link to="/app/runs">Simülasyonlar</Link><Icon name="chevron" size={13} /> {String(run.id).slice(0, 8)}</span>
           <h2>Simülasyon <span className="mono" style={{ fontSize: 18 }}>{String(run.id).slice(0, 8)}</span></h2>
           <div className="row" style={{ marginTop: 8 }}>
-            {failed ? <span className="badge bad">hata</span> : run.status === "completed" ? <span className="badge ok">tamamlandı</span> : <span className="badge run">{run.status}</span>}
+            {failed ? <span className="badge bad">hata</span> : canceled ? <span className="badge bad">iptal</span> : run.status === "completed" ? <span className="badge ok">tamamlandı</span> : <span className="badge run">{run.status}</span>}
             {run.project_name && <Link className="badge no-dot" to={`/app/projects/${run.project_id}`}>{run.project_name}</Link>}
             {run.template_key && <span className="badge no-dot">{run.template_key}</span>}
           </div>
         </div>
-        {run.report_object_key && (
-          <button className="btn" type="button" disabled title="Rapor indirme F3'te geliyor"><Icon name="doc" size={15} /> Raporu indir</button>
-        )}
+        <div className="row">
+          {active && (
+            <button className="btn" type="button" onClick={cancelRun} disabled={canceling}>
+              <Icon name="x" size={15} /> {canceling ? "İptal ediliyor…" : "İptal Et"}
+            </button>
+          )}
+          {run.report_object_key && (
+            <button className="btn" type="button" disabled title="Rapor indirme F3'te geliyor"><Icon name="doc" size={15} /> Raporu indir</button>
+          )}
+        </div>
       </div>
 
       <div className="stat-grid">
@@ -52,30 +111,54 @@ export default function RunDetail() {
         <div className="card stat"><div className="stat-label">Başlangıç</div><div className="stat-value" style={{ fontSize: 15, marginTop: 10 }}>{fmtDate(run.created_at)}</div></div>
       </div>
 
-      {failed && run.error && <p className="error">{run.error}</p>}
+      {(failed || canceled) && run.error && <p className="error">{run.error}</p>}
 
-      <div className="card card-pad">
-        <h3 style={{ marginBottom: 16 }}>İşlem hattı</h3>
-        <div className="stage-list">
-          {STAGES.map((s, i) => {
-            let cls = "stage";
-            if (failed && i === idx) cls += " failed";
-            else if (run.status === "completed" || i < idx) cls += " done";
-            else if (i === idx) cls += " current";
-            return (
-              <div className={cls} key={s.key}>
-                <span className="s-dot">{cls.includes("done") ? <Icon name="check" size={13} /> : i + 1}</span>
-                <div className="s-body">
-                  <div className="s-label">{s.label}</div>
-                  <div className="s-sub">{cls.includes("done") ? "tamamlandı" : cls.includes("current") ? failed ? "bu adımda hata oluştu" : "işleniyor…" : cls.includes("failed") ? "hata" : "bekliyor"}</div>
+      <div className="grid-2">
+        <div className="card card-pad">
+          <h3 style={{ marginBottom: 16 }}>İşlem hattı</h3>
+          <div className="stage-list">
+            {STAGES.map((s, i) => {
+              let cls = "stage";
+              if (failed && i === idx) cls += " failed";
+              else if (run.status === "completed" || i < idx) cls += " done";
+              else if (i === idx) cls += " current";
+              return (
+                <div className={cls} key={s.key}>
+                  <span className="s-dot">{cls.includes("done") ? <Icon name="check" size={13} /> : i + 1}</span>
+                  <div className="s-body">
+                    <div className="s-label">{s.label}</div>
+                    <div className="s-sub">{cls.includes("done") ? "tamamlandı" : cls.includes("current") ? failed ? "bu adımda hata oluştu" : "işleniyor…" : cls.includes("failed") ? "hata" : "bekliyor"}</div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card card-pad">
+          <h3 style={{ marginBottom: 12 }}>Canlı olay akışı <span className="badge no-dot" style={{ marginLeft: 6 }}>{events.length}</span></h3>
+          {events.length === 0 ? (
+            <p className="small muted">Simülasyon başladığında ajan olayları burada akar.</p>
+          ) : (
+            <div className="feed">
+              {events.map((ev) => (
+                <div className="feed-item" key={ev.id}>
+                  <div className="feed-meta">
+                    <div className="feed-round">T{ev.round}</div>
+                    <div className="feed-actor">{ev.platform}</div>
+                  </div>
+                  <div className="feed-body">
+                    <span className="evt">{ev.event_type}</span>{" "}
+                    <span className="txt">{eventText(ev)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="notice"><Icon name="bell" size={15} /><span>Bu koşunun tüm olayları ve raporu simülasyon ürünüdür; olay akışı (SSE) ve rapor görüntüleme sonraki fazlarda bu sayfaya bağlanır.</span></div>
+      <div className="notice"><Icon name="bell" size={15} /><span>Bu koşunun tüm olayları ve raporu simülasyon ürünüdür; gerçek anket veya saha verisi değildir.</span></div>
     </>
   );
 }

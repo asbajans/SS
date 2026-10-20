@@ -1,15 +1,23 @@
 """Runs router (thick logic lives in Celery pipeline; see agent.md s8)."""
+import asyncio
+import json
 import uuid
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_user, get_db
-from app.models import Project, Run
+from app.db import AsyncSessionLocal
+from app.models import Agent, Ontology, Project, Run, RunEvent
 
 router = APIRouter(prefix="/api")
+
+ACTIVE_STATUSES = {"pending", "ingesting", "ontology", "population", "running", "report"}
+TERMINAL_STATUSES = {"completed", "failed", "canceled"}
 
 
 def _validate_sim_config(cfg: dict) -> str | None:
@@ -121,12 +129,8 @@ async def list_runs(user=Depends(current_user), db: AsyncSession = Depends(get_d
 
 @router.get("/runs/{run_id}")
 async def get_run(run_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
-    run = await db.get(Run, run_id)
-    if run is None:
-        raise HTTPException(status_code=404, detail="not found")
+    run = await _owned_run(db, user, run_id)
     project = await db.get(Project, run.project_id)
-    if project is None or project.user_id != user.id:
-        raise HTTPException(status_code=404, detail="not found")
     return {
         "id": run.id,
         "project_id": run.project_id,
@@ -139,4 +143,170 @@ async def get_run(run_id: str, user=Depends(current_user), db: AsyncSession = De
         "error": run.error,
         "report_object_key": run.report_object_key,
         "created_at": run.created_at.isoformat() if run.created_at else None,
+    }
+
+
+async def _owned_run(db: AsyncSession, user, run_id: str) -> Run:
+    run = await db.get(Run, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="not found")
+    project = await db.get(Project, run.project_id)
+    if project is None or project.user_id != user.id:
+        raise HTTPException(status_code=404, detail="not found")
+    return run
+
+
+@router.get("/runs/{run_id}/events")
+async def list_run_events(
+    run_id: str,
+    after: int = 0,
+    limit: int = 200,
+    user=Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    run = await _owned_run(db, user, run_id)
+    rows = (
+        await db.scalars(
+            select(RunEvent)
+            .where(RunEvent.run_id == run.id, RunEvent.id > after)
+            .order_by(RunEvent.id)
+            .limit(min(max(limit, 1), 500))
+        )
+    ).all()
+    return [
+        {
+            "id": ev.id,
+            "round": ev.round,
+            "platform": ev.platform,
+            "event_type": ev.event_type,
+            "agent_id": ev.agent_id,
+            "payload": ev.payload,
+            "created_at": ev.created_at.isoformat() if ev.created_at else None,
+        }
+        for ev in rows
+    ]
+
+
+@router.get("/runs/{run_id}/events/stream")
+async def stream_run_events(
+    run_id: str,
+    request: Request,
+    after: int = 0,
+    user=Depends(current_user),
+):
+    async with AsyncSessionLocal() as s:
+        await _owned_run(s, user, run_id)
+
+    async def gen():
+        last = after
+        while True:
+            if await request.is_disconnected():
+                break
+            async with AsyncSessionLocal() as s:
+                current = await s.get(Run, run_id)
+                events = (
+                    await s.scalars(
+                        select(RunEvent)
+                        .where(RunEvent.run_id == run_id, RunEvent.id > last)
+                        .order_by(RunEvent.id)
+                        .limit(200)
+                    )
+                ).all()
+                status = current.status if current else "failed"
+                snapshot = {
+                    "status": status,
+                    "round": current.current_round if current else 0,
+                    "tokens_used": current.tokens_used if current else 0,
+                    "cost_usd": str(current.cost_usd) if current else "0",
+                    "error": current.error if current else None,
+                }
+            yield f"event: status\ndata: {json.dumps(snapshot)}\n\n"
+            for ev in events:
+                last = ev.id
+                payload = {
+                    "id": ev.id,
+                    "round": ev.round,
+                    "platform": ev.platform,
+                    "event_type": ev.event_type,
+                    "agent_id": ev.agent_id,
+                    "payload": ev.payload,
+                }
+                yield f"event: run_event\ndata: {json.dumps(payload)}\n\n"
+            if status in TERMINAL_STATUSES and not events:
+                break
+            await asyncio.sleep(1)
+        yield "event: end\ndata: {}\n\n"
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.post("/runs/{run_id}/cancel")
+async def cancel_run(run_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
+    run = await _owned_run(db, user, run_id)
+    if run.status in ACTIVE_STATUSES:
+        run.status = "canceled"
+        run.finished_at = datetime.now(UTC)
+        project = await db.get(Project, run.project_id)
+        if project is not None:
+            project.status = "canceled"
+        await db.commit()
+    return {"status": run.status}
+
+
+@router.get("/projects/{project_id}/agents")
+async def list_project_agents(
+    project_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)
+):
+    project = (
+        await db.scalars(select(Project).where(Project.id == project_id, Project.user_id == user.id))
+    ).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="not found")
+    rows = (
+        await db.scalars(
+            select(Agent).where(Agent.project_id == project.id).order_by(Agent.agent_idx)
+        )
+    ).all()
+    return [
+        {
+            "id": agent.id,
+            "agent_idx": agent.agent_idx,
+            "name": agent.name,
+            "bio": agent.bio,
+            "persona": agent.persona,
+            "attributes": agent.attributes,
+            "platform": agent.platform,
+        }
+        for agent in rows
+    ]
+
+
+@router.get("/projects/{project_id}/ontology")
+async def get_project_ontology(
+    project_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)
+):
+    project = (
+        await db.scalars(select(Project).where(Project.id == project_id, Project.user_id == user.id))
+    ).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="not found")
+    row = (
+        await db.scalars(select(Ontology).where(Ontology.project_id == project.id))
+    ).first()
+    if row is None:
+        return {"exists": False}
+    return {
+        "exists": True,
+        "entity_types": row.entity_types,
+        "relation_types": row.relation_types,
+        "seed_summary": row.seed_summary,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
     }
