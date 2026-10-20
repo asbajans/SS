@@ -94,6 +94,7 @@ services:
       FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD}
       ENGINE_MAX_AGENTS: ${ENGINE_MAX_AGENTS:-300}
       ENGINE_MAX_ROUNDS: ${ENGINE_MAX_ROUNDS:-80}
+      METRICS_PORT: 9101
     depends_on:
       db:
         condition: service_healthy

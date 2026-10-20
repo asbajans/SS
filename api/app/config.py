@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     minio_secure: bool = False
     tei_url: str = "http://tei:80"
     embed_dim: int = 1024
+    metrics_port: int = 0
 
     # LLM (OpenRouter - the only external service)
     openrouter_api_key: str = ""
