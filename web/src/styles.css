@@ -381,6 +381,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .credit-pack { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .credit-pack-side { display: flex; align-items: center; gap: 16px; }
 .credit-pack .plan-price { font-size: 28px; }
+.pricing-note { text-align: center; color: var(--muted); font-size: 13px; margin-top: 16px; }
+.landing-pricing .plan-card .btn { margin-top: auto; }
 
 /* ---------- admin ---------- */
 .model-form { background: #fafbfc; border-top: 1px solid var(--border); padding: 20px 18px; }
