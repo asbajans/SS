@@ -39,13 +39,13 @@ CREATE TABLE IF NOT EXISTS model_configs (
 -- seed defaults; admin edits via panel
 INSERT INTO model_configs (task_key, model, fallbacks, max_tokens, temperature, rpm, daily_budget_tokens, cost_in_usd_per_mtok, cost_out_usd_per_mtok)
 VALUES
-  ('ingest_ontology', 'anthropic/claude-sonnet-4.6',        '{openai/gpt-4o-mini}', 4000, 0.3, 20,   200000, 3.0,  15.0),
+  ('ingest_ontology', 'google/gemini-3.1-flash-lite',       '{openai/gpt-4o-mini}', 4000, 0.3, 20,   200000, 0.25, 1.5),
   ('persona_synth',   'meta-llama/llama-3.1-70b-instruct',  '{openai/gpt-4o-mini}', 2000, 0.7, 60,   1000000, 0.4,  0.4),
   ('agent_act',       'meta-llama/llama-3.1-8b-instruct',   '{openai/gpt-4o-mini}', 700,  0.7, 600,  3000000, 0.05, 0.08),
   ('agent_digest',    'meta-llama/llama-3.1-8b-instruct',   '{}',                   500,  0.3, 600,  1000000, 0.05, 0.08),
-  ('analyst_draft',   'google/gemini-2.5-flash',            '{openai/gpt-4o-mini}', 4000, 0.3, 60,   1000000, 0.3,  2.5),
-  ('report_outline',  'anthropic/claude-sonnet-4.6',        '{openai/gpt-4o-mini}', 2000, 0.3, 20,   200000, 3.0,  15.0),
-  ('report_section',  'anthropic/claude-sonnet-4.6',        '{openai/gpt-4o-mini}', 4000, 0.5, 20,   500000, 3.0,  15.0),
+  ('analyst_draft',   'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 4000, 0.3, 60,   1000000, 0.825, 4.125),
+  ('report_outline',  'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 2000, 0.3, 20,   200000, 0.825, 4.125),
+  ('report_section',  'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 4000, 0.5, 20,   500000, 0.825, 4.125),
   ('agent_interview', 'meta-llama/llama-3.1-70b-instruct',  '{openai/gpt-4o-mini}', 1000, 0.5, 30,   500000, 0.4,  0.4)
 ON CONFLICT (task_key) DO NOTHING;
 

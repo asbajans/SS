@@ -45,7 +45,10 @@ async def _resolve(task_key: str) -> _FakeCfg:
     return _FakeCfg()
 
 
-async def test_gateway_mock_mode():
+async def test_gateway_mock_mode(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "llm_mock_mode", True)
     recorder = _FakeRecorder()
     gw = LLMGateway(_resolve, _FakeRateLimiter(), recorder)
     res = await gw.call("agent_act", [{"role": "user", "content": "hi"}])

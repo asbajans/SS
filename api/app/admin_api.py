@@ -61,6 +61,12 @@ async def list_models(db: AsyncSession = Depends(get_db)):
 
 @router.put("/models/{task_key}", dependencies=[Depends(admin_only)])
 async def upsert_model(task_key: str, data: ModelConfigIn, db: AsyncSession = Depends(get_db)):
+    batch = [m for m in [data.model, *data.fallbacks] if m.endswith(":batch")]
+    if batch:
+        raise HTTPException(
+            status_code=400,
+            detail="Batch variants (:batch) do not support chat completions; pick the standard model id",
+        )
     cfg = (await db.scalars(select(ModelConfig).where(ModelConfig.task_key == task_key))).first()
     if cfg is None:
         cfg = ModelConfig(task_key=task_key)
