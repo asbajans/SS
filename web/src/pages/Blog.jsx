@@ -12,6 +12,7 @@ export default function Blog() {
 
   useEffect(() => {
     localStorage.setItem("ss_lang", lang);
+    document.documentElement.lang = lang;
     api("/api/blog/posts").then(setPosts).catch((e) => setErr(e.message));
   }, [lang]);
 

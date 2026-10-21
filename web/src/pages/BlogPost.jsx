@@ -26,6 +26,7 @@ export default function BlogPostPage() {
 
   useEffect(() => {
     localStorage.setItem("ss_lang", lang);
+    document.documentElement.lang = lang;
   }, [lang]);
 
   useEffect(() => {

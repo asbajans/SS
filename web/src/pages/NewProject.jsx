@@ -35,7 +35,9 @@ export default function NewProject() {
   const [tpl, setTpl] = useState(hasTpl ? initialTpl : "market_research");
   const [templates, setTemplates] = useState(TEMPLATES);
   const [name, setName] = useState(promptSeed.slice(0, 80));
-  const [language, setLanguage] = useState("tr");
+  const [language, setLanguage] = useState(() =>
+    localStorage.getItem("ss_lang") === "en" ? "en" : "tr",
+  );
   const [brief, setBrief] = useState(promptSeed);
   const [postText, setPostText] = useState("");
   const [audience, setAudience] = useState("");

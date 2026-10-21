@@ -256,6 +256,8 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem("ss_lang", lang);
+    document.documentElement.lang = lang;
+    window.dispatchEvent(new CustomEvent("ss_lang_change", { detail: lang }));
     setPromptIndex(0);
     setTyped("");
   }, [lang]);

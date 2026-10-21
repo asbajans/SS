@@ -311,3 +311,12 @@ Deploy akışı:
 - Dosyalar: `api/app/google_auth.py` (dogrulama), `api/app/auth.py` (`GET /api/auth/google/config`, `POST /api/auth/google`), `web/src/google.js` (GIS script yukleyici), `web/src/components/GoogleAuth.jsx` (buton), `api/tests/test_google_auth.py`.
 - Veritabani: `users.google_id` kolonu (nullable, unique) - `startup.py` migration + `db/init.sql`.
 - Kapaliysa `GET /api/auth/google/config` -> `{enabled:false}` ve arayuzde buton gorunmez; `POST` 403 yerine 503 doner.- Google Identity Services (OAuth 2.0, ID token) ek bir SaaS olarak 2026-10-21 onaylandi; client secret kullanilmaz, sadece `GOOGLE_CLIENT_ID` (public client id) env degiskeni. Dogrulama: RS256 JWKS (cryptography paketi) + tokeninfo yedegi.
+---
+
+## 16) Panel i18n (TR/EN)
+
+- `web/src/dict.js`: TR -> EN sozluk (390+ girdi; tum panel metinleri, tablo basliklari, sablon adlari/aciklamalari, durumlar).
+- `web/src/i18n.js`: runtime ceviri. `ss_lang` localStorage anahtari; `initI18n()` DOM'u gezer, metin dugumlerini ve `placeholder`/`title` niteliklerini sozlukle degistirir; MutationObserver ile React yeniden render oldugunda tekrar uygular; `setLang()` ceviriyi geri alir (TR'ye donus). `document.documentElement.lang` EN/TR olarak guncellenir (CSS uppercase Turkce locale sorunu).
+- Panelde TR/EN anahtari topbar'da (`lang-pill`); landing (`App.jsx`) ve blog sayfalari ayni `ss_lang` degerini paylasir.
+- Yeni proje olustururken rapor dili secimi `ss_lang` degerinden baslar.
+- Not: API'den gelen veri (proje adi, blog yazi basligi, kullanici e-postasi) cevrilmez; yalnizca arayuz metinleri cevrilir.

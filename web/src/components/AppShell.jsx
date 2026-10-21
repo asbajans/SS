@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { api, logout } from "../api.js";
+import { useLang } from "../i18n.js";
 import Icon from "../icons.jsx";
 
 const NAV = [
@@ -44,6 +45,7 @@ export default function AppShell() {
   const [user, setUser] = useState(null);
   const [err, setErr] = useState(null);
   const [open, setOpen] = useState(false);
+  const [lang, toggleLang] = useLang();
   const loc = useLocation();
 
   useEffect(() => {
@@ -122,6 +124,10 @@ export default function AppShell() {
           </button>
           <h1 className="page-title">{pageTitle(loc.pathname)}</h1>
           <div className="topbar-right">
+            <button className="lang-pill" type="button" onClick={toggleLang} title="Dil / Language" aria-label="Language">
+              <span className={lang === "tr" ? "on" : ""}>TR</span>
+              <span className={lang === "en" ? "on" : ""}>EN</span>
+            </button>
             <span className="sim-badge" title="Tüm çıktılar simülasyon ürünüdür">
               <Icon name="bell" size={14} /> Simülasyon
             </span>

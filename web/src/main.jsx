@@ -23,9 +23,12 @@ import RunDetail from "./pages/RunDetail.jsx";
 import Runs from "./pages/Runs.jsx";
 import Settings from "./pages/Settings.jsx";
 import { getToken } from "./api.js";
+import { initI18n } from "./i18n.js";
 import "./styles.css";
 import "./theme.css";
 import "./landing.css";
+
+initI18n();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
