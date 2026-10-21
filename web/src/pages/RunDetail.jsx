@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, downloadReport, fmtCost, fmtDate, fmtTokens, STAGES, stageIndex, streamRunEvents } from "../api.js";
+import { ACTIVE_STATUSES, api, downloadReport, fmtDate, fmtTokens, STAGES, stageIndex, streamRunEvents } from "../api.js";
 import Icon from "../icons.jsx";
 
 function eventText(ev) {
@@ -99,9 +99,14 @@ export default function RunDetail() {
             </button>
           )}
           {run.report_object_key && (
-            <button className="btn btn-primary" type="button" onClick={() => downloadReport(id, "pdf").catch((e) => setErr(e.message))}>
-              <Icon name="doc" size={15} /> Rapor (PDF)
-            </button>
+            <>
+              <Link className="btn" to={`/app/reports/${id}`}>
+                <Icon name="chart" size={15} /> Analiz
+              </Link>
+              <button className="btn btn-primary" type="button" onClick={() => downloadReport(id, "pdf").catch((e) => setErr(e.message))}>
+                <Icon name="doc" size={15} /> Rapor (PDF)
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -109,7 +114,6 @@ export default function RunDetail() {
       <div className="stat-grid">
         <div className="card stat"><div className="stat-label">Tur</div><div className="stat-value" style={{ fontSize: 22 }}>{run.current_round ?? 0}</div></div>
         <div className="card stat"><div className="stat-label">Token</div><div className="stat-value" style={{ fontSize: 22 }}>{fmtTokens(run.tokens_used)}</div></div>
-        <div className="card stat"><div className="stat-label">Maliyet</div><div className="stat-value" style={{ fontSize: 22 }}>{fmtCost(run.cost_usd)}</div></div>
         <div className="card stat"><div className="stat-label">Başlangıç</div><div className="stat-value" style={{ fontSize: 15, marginTop: 10 }}>{fmtDate(run.created_at)}</div></div>
       </div>
 

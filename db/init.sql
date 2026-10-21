@@ -85,6 +85,29 @@ CREATE TABLE IF NOT EXISTS blog_posts (
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS blog_topics (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    topic        TEXT NOT NULL,
+    keywords     TEXT NOT NULL DEFAULT '',
+    status       TEXT NOT NULL DEFAULT 'queued',
+    post_slug    TEXT REFERENCES blog_posts(slug) ON DELETE SET NULL,
+    scheduled_at TIMESTAMPTZ,
+    published_at TIMESTAMPTZ,
+    error        TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_blog_topics_status ON blog_topics(status, created_at);
+
+CREATE TABLE IF NOT EXISTS blog_automation (
+    id           INT PRIMARY KEY DEFAULT 1,
+    enabled      BOOLEAN NOT NULL DEFAULT TRUE,
+    interval_days INT NOT NULL DEFAULT 7,
+    next_run_at  TIMESTAMPTZ,
+    last_run_at  TIMESTAMPTZ,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS api_keys (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -138,7 +161,8 @@ VALUES
   ('analyst_draft',   'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 4000, 0.3, 60,   1000000, 0.825, 4.125),
   ('report_outline',  'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 2000, 0.3, 20,   200000, 0.825, 4.125),
   ('report_section',  'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 4000, 0.5, 20,   500000, 0.825, 4.125),
-  ('agent_interview', 'meta-llama/llama-3.1-70b-instruct',  '{openai/gpt-4o-mini}', 1000, 0.5, 30,   500000, 0.4,  0.4)
+  ('agent_interview', 'meta-llama/llama-3.1-70b-instruct',  '{openai/gpt-4o-mini}', 1000, 0.5, 30,   500000, 0.4,  0.4),
+  ('blog_editor',     'google/gemini-3.8-flash',            '{openai/gpt-4o-mini}', 6000, 0.6, 20,   500000, 0.825, 4.125)
 ON CONFLICT (task_key) DO NOTHING;
 
 -- ---------- templates (admin-managed topic packs; builtins seeded at startup) ----------

@@ -14,6 +14,7 @@ from app.admin_api import router as admin_router
 from app.api_platform import router as platform_router
 from app.auth import router as auth_router
 from app.billing_api import router as billing_router
+from app.blog_admin_api import router as blog_admin_router
 from app.blog_api import router as blog_router
 from app.config import settings
 from app.documents_api import router as documents_router
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(templates_router)
     app.include_router(privacy_router)
     app.include_router(blog_router)
+    app.include_router(blog_admin_router)
     app.include_router(platform_router)
     Instrumentator(excluded_handlers=["/metrics"]).instrument(app)
     return app

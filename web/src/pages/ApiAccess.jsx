@@ -13,6 +13,7 @@ const ENDPOINTS = [
   ["POST", "/api/v1/projects/{id}/runs", "Simülasyonu kuyruğa alır"],
   ["GET", "/api/v1/runs", "Son 100 simülasyonu listeler"],
   ["GET", "/api/v1/runs/{id}", "Durum ve rapor bilgisini döner"],
+  ["GET", "/api/v1/runs/{id}/insights", "Görüş dağılımı, gerekçeler ve yorumları döner"],
   ["GET", "/api/v1/runs/{id}/report/download", "PDF veya Markdown indirir"],
 ];
 

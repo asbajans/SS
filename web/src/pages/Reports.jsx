@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { api, downloadReport, fmtCost, fmtDate, fmtTokens } from "../api.js";
+import { api, downloadReport, fmtDate, fmtTokens } from "../api.js";
 import Icon from "../icons.jsx";
 
 export default function Reports() {
@@ -38,7 +38,6 @@ export default function Reports() {
   }
 
   const totalTokens = runs.reduce((sum, r) => sum + Number(r.tokens_used || 0), 0);
-  const totalCost = runs.reduce((sum, r) => sum + Number(r.cost_usd || 0), 0);
 
   return (
     <>
@@ -54,7 +53,7 @@ export default function Reports() {
       <div className="stat-grid" style={{ marginBottom: 4 }}>
         <div className="card stat"><div className="stat-label"><Icon name="doc" size={15} /> Rapor</div><div className="stat-value">{runs.length}</div><div className="stat-sub">indirilebilir PDF/Markdown</div></div>
         <div className="card stat"><div className="stat-label"><Icon name="chart" size={15} /> Toplam token</div><div className="stat-value">{fmtTokens(totalTokens)}</div><div className="stat-sub">rapor üretiminde tüketilen</div></div>
-        <div className="card stat"><div className="stat-label"><Icon name="card" size={15} /> Toplam maliyet</div><div className="stat-value">{fmtCost(totalCost)}</div><div className="stat-sub">model maliyeti (satış fiyatı değil)</div></div>
+        <div className="card stat"><div className="stat-label"><Icon name="chart" size={15} /> Analiz</div><div className="stat-value">{runs.length}</div><div className="stat-sub">görüş dağılımı ve gerekçeler</div></div>
         <div className="card stat"><div className="stat-label"><Icon name="activity" size={15} /> Son rapor</div><div className="stat-value" style={{ fontSize: 18 }}>{runs[0] ? fmtDate(runs[0].finished_at || runs[0].created_at) : "—"}</div><div className="stat-sub">tamamlanma zamanı</div></div>
       </div>
 
@@ -66,7 +65,7 @@ export default function Reports() {
       <div className="card table-wrap">
         <table className="tbl">
           <thead>
-            <tr><th>Proje</th><th>Run</th><th>Durum</th><th className="num">Token</th><th className="num">Maliyet</th><th>Tamamlandı</th><th>İşlem</th></tr>
+            <tr><th>Proje</th><th>Run</th><th>Durum</th><th className="num">Token</th><th>Tamamlandı</th><th>İşlem</th></tr>
           </thead>
           <tbody>
             {filtered.map((r) => (
@@ -75,9 +74,9 @@ export default function Reports() {
                 <td className="mono small">{String(r.id).slice(0, 8)}</td>
                 <td><span className="badge ok">hazır</span></td>
                 <td className="num">{fmtTokens(r.tokens_used)}</td>
-                <td className="num">{fmtCost(r.cost_usd)}</td>
                 <td className="small muted">{fmtDate(r.finished_at || r.created_at)}</td>
                 <td className="num">
+                  <Link className="btn btn-sm" to={`/app/reports/${r.id}`}><Icon name="chart" size={14} /> Analiz</Link>{" "}
                   <button className="btn btn-sm" type="button" disabled={busy === `${r.id}:pdf`} onClick={() => download(r, "pdf")}>
                     {busy === `${r.id}:pdf` ? "…" : "PDF"}
                   </button>{" "}

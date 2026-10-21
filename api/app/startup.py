@@ -119,6 +119,33 @@ _MIGRATIONS = [
         created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )""",
     "CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks(user_id)",
+    """CREATE TABLE IF NOT EXISTS blog_topics (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        topic TEXT NOT NULL,
+        keywords TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'queued',
+        post_slug TEXT REFERENCES blog_posts(slug) ON DELETE SET NULL,
+        scheduled_at TIMESTAMPTZ,
+        published_at TIMESTAMPTZ,
+        error TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_blog_topics_status ON blog_topics(status, created_at)",
+    """CREATE TABLE IF NOT EXISTS blog_automation (
+        id INT PRIMARY KEY DEFAULT 1,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        interval_days INT NOT NULL DEFAULT 7,
+        next_run_at TIMESTAMPTZ,
+        last_run_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )""",
+    """INSERT INTO model_configs
+       (task_key, model, fallbacks, max_tokens, temperature, rpm,
+        daily_budget_tokens, cost_in_usd_per_mtok, cost_out_usd_per_mtok)
+       VALUES ('blog_editor', 'google/gemini-3.8-flash', '{openai/gpt-4o-mini}',
+               6000, 0.6, 20, 500000, 0.825, 4.125)
+       ON CONFLICT (task_key) DO NOTHING""",
 ]
 
 
@@ -263,6 +290,7 @@ BLOG_POSTS = [
             "- `POST /api/v1/projects` ile şablon ve simülasyon ayarlarını gönderin\n"
             "- `POST /api/v1/projects/{id}/runs` ile simülasyonu kuyruğa alın\n"
             "- `GET /api/v1/runs/{id}` ile durumu izleyin\n"
+            "- `GET /api/v1/runs/{id}/insights` ile görüş dağılımını ve gerekçeleri alın\n"
             "- `GET /api/v1/runs/{id}/report/download` ile PDF veya Markdown raporu indirin\n\n"
             "## Webhook ile otomasyon\n\n"
             "Webhook tanımladığınızda simülasyon tamamlandığında veya başarısız olduğunda "
@@ -278,6 +306,7 @@ BLOG_POSTS = [
             "- Send template and simulation settings with `POST /api/v1/projects`\n"
             "- Queue a simulation with `POST /api/v1/projects/{id}/runs`\n"
             "- Track status with `GET /api/v1/runs/{id}`\n"
+            "- Read stance mix and reasons with `GET /api/v1/runs/{id}/insights`\n"
             "- Download PDF or Markdown with `GET /api/v1/runs/{id}/report/download`\n\n"
             "## Automation with webhooks\n\n"
             "When you configure a webhook, the system notifies you with a signed HTTPS request "

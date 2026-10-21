@@ -27,6 +27,10 @@ PERSONA_HINTS = {
         "demography": "Stance, fandom loyalty, openness.",
         "hint": "Include favorite character dynamics.",
     },
+    "social_post_test": {
+        "demography": "Age group, platform habit, brand affinity, skepticism.",
+        "hint": "Include what makes this audience stop scrolling, trust or reject a post.",
+    },
 }
 
 _FIRST = [

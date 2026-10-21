@@ -249,6 +249,46 @@ class BlogPost(Base):
     )
 
 
+class BlogTopic(Base):
+    __tablename__ = "blog_topics"
+    id: Mapped[uuid.UUID] = uid()
+    topic: Mapped[str] = mapped_column(Text)
+    keywords: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(24), default="queued")
+    post_slug: Mapped[str | None] = mapped_column(
+        ForeignKey("blog_posts.slug", ondelete="SET NULL"), nullable=True
+    )
+    scheduled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class BlogAutomation(Base):
+    __tablename__ = "blog_automation"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    interval_days: Mapped[int] = mapped_column(Integer, default=7)
+    next_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_run_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class ApiKey(Base):
     __tablename__ = "api_keys"
     id: Mapped[uuid.UUID] = uid()

@@ -35,6 +35,10 @@ export default function NewProject() {
   const [templates, setTemplates] = useState(TEMPLATES);
   const [name, setName] = useState("");
   const [language, setLanguage] = useState("tr");
+  const [brief, setBrief] = useState("");
+  const [postText, setPostText] = useState("");
+  const [audience, setAudience] = useState("");
+  const [channel, setChannel] = useState("Instagram");
   const [profile, setProfile] = useState("std");
   const [custom, setCustom] = useState({ agents_n: 120, rounds: 30, platforms: 1 });
   const [error, setError] = useState(null);
@@ -68,11 +72,22 @@ export default function NewProject() {
   }, []);
 
   async function finish() {
-    setBusy(true); setError(null);
+    setError(null);
+    if (tpl === "social_post_test" && postText.trim().length < 10) {
+      setError("Test için en az 10 karakterlik bir sosyal medya gönderisi yazın.");
+      return;
+    }
+    setBusy(true);
     const cfg =
       profile === "custom"
         ? { agents_n: Number(custom.agents_n), rounds: Number(custom.rounds), platforms: Number(custom.platforms) || 1 }
         : (() => { const p = PROFILES.find((x) => x.key === profile); return { agents_n: p.agents_n, rounds: p.rounds, platforms: p.platforms }; })();
+    if (brief.trim()) cfg.brief = brief.trim();
+    if (tpl === "social_post_test") {
+      cfg.post_text = postText.trim();
+      cfg.audience = audience.trim() || "Genel sosyal medya kitlesi";
+      cfg.channel = channel;
+    }
     try {
       const p = await api("/api/projects", {
         method: "POST",
@@ -123,9 +138,34 @@ export default function NewProject() {
               <div className="input" style={{ background: "#f9fafb", display: "flex", alignItems: "center" }}>{templates.find((t) => t.key === tpl)?.name}</div>
             </div>
           </div>
+          <div className="field">
+            <label htmlFor="brief">Araştırma briefi (opsiyonel)</label>
+            <textarea id="brief" className="input" rows={3} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Neyi anlamak istiyorsunuz? Varsayımlar, hedef segment ve başarı kriteri..." />
+          </div>
+          {tpl === "social_post_test" && (
+            <>
+              <div className="field">
+                <label htmlFor="posttext">Test edilecek sosyal medya gönderisi</label>
+                <textarea id="posttext" className="input" rows={5} maxLength={4000} value={postText} onChange={(e) => setPostText(e.target.value)} placeholder="Gönderi metnini, başlığı ve varsa çağrıyı buraya yazın..." required />
+                <div className="small muted" style={{ marginTop: 4 }}>{postText.length}/4000 karakter</div>
+              </div>
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="audience">Hedef kitle</label>
+                  <input id="audience" className="input" value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Örn: 25-40 yaş, şehirli, teknoloji meraklısı" />
+                </div>
+                <div className="field">
+                  <label htmlFor="channel">Kanal</label>
+                  <select id="channel" className="select" value={channel} onChange={(e) => setChannel(e.target.value)}>
+                    <option>Instagram</option><option>X / Twitter</option><option>LinkedIn</option><option>TikTok</option><option>Facebook</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
           <div className="dropzone disabled"><Icon name="upload" size={22} />
-            <strong>Belge yükleme yakında</strong>
-            <p className="small muted">PDF / metin kaynak yükleme bir sonraki fazda bu adıma eklenir.</p>
+            <strong>Belge yükleme proje oluşturulduktan sonra</strong>
+            <p className="small muted">PDF / TXT / MD kaynakları proje detayındaki Belgeler sekmesinden ekleyebilirsiniz.</p>
           </div>
           <div className="row" style={{ marginTop: 18, justifyContent: "space-between" }}>
             <button className="btn" type="button" onClick={() => setStep(1)}><Icon name="arrowLeft" size={15} /> Geri</button>
@@ -139,7 +179,7 @@ export default function NewProject() {
           <div className="choice-grid">
             {PROFILES.map((p) => (
               <button key={p.key} type="button" className={`choice${profile === p.key ? " sel" : ""}`} disabled={Boolean(limits && (p.agents_n > limits.agents_limit || p.rounds > limits.rounds_limit))} title={limits && (p.agents_n > limits.agents_limit || p.rounds > limits.rounds_limit) ? `Plan limiti: en fazla ${limits.agents_limit} ajan / ${limits.rounds_limit} tur` : undefined} onClick={() => setProfile(p.key)}>
-                <h4>{p.name}</h4><p>{p.hint}</p><span className="meta">{p.agents_n} ajan · {p.rounds} tur · {p.platforms} platform</span><span className="meta">≈ maliyet {p.cost}</span>
+                <h4>{p.name}</h4><p>{p.hint}</p><span className="meta">{p.agents_n} ajan · {p.rounds} tur · {p.platforms} platform</span>
               </button>
             ))}
             <button type="button" className={`choice${profile === "custom" ? " sel" : ""}`} onClick={() => setProfile("custom")}>

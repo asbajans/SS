@@ -25,6 +25,7 @@ from app.storage import put_bytes
 from app.template_service import load_template
 from app.webhooks import dispatch_run_event
 from engine.actions import parse_agent_action
+from engine.insights import build_run_insights, format_insights_markdown
 from engine.loop import build_agent_messages
 from engine.ontology import build_ontology_prompt, parse_ontology
 from engine.population import build_persona_prompt, parse_personas
@@ -116,7 +117,25 @@ async def _event(
     await s.commit()
 
 
+def _scenario_context(project: Project, template) -> str:
+    config = project.sim_config or {}
+    lines = [
+        f"Proje: {project.name}",
+        f"Şablon: {template.name} ({template.key})",
+    ]
+    if config.get("brief"):
+        lines.append(f"Araştırma briefi: {str(config['brief'])[:2500]}")
+    if config.get("post_text"):
+        lines.append(f"Test edilen gönderi:\n{str(config['post_text'])[:2500]}")
+    if config.get("audience"):
+        lines.append(f"Hedef kitle: {str(config['audience'])[:800]}")
+    if config.get("channel"):
+        lines.append(f"Kanal: {str(config['channel'])[:200]}")
+    return "\n".join(lines)
+
+
 async def _seed_material(s, project: Project, template) -> str:
+    context = _scenario_context(project, template)
     chunks = (
         await s.scalars(
             select(DocumentChunk)
@@ -126,11 +145,9 @@ async def _seed_material(s, project: Project, template) -> str:
         )
     ).all()
     if chunks:
-        return "\n\n".join(chunk.content for chunk in chunks)[:8000]
-    return (
-        f"Proje: {project.name}\nŞablon: {template.name} ({template.key})\n"
-        f"Hedef: sentetik topluluk simülasyonu ile ön sinyaller üretmek."
-    )
+        docs = "\n\n".join(chunk.content for chunk in chunks)
+        return f"{context}\n\nKaynak belgeler:\n{docs}"[:8000]
+    return context[:8000]
 
 
 async def _stage_ontology(s, run, project, template, gateway, seed_text) -> dict:
@@ -163,7 +180,9 @@ async def _stage_ontology(s, run, project, template, gateway, seed_text) -> dict
     return parsed
 
 
-async def _stage_population(s, run, project, template, gateway, agents_n: int) -> list[Agent]:
+async def _stage_population(
+    s, run, project, template, gateway, agents_n: int, seed_text: str
+) -> list[Agent]:
     existing = (
         await s.scalars(
             select(Agent).where(Agent.project_id == project.id).order_by(Agent.agent_idx)
@@ -174,7 +193,11 @@ async def _stage_population(s, run, project, template, gateway, agents_n: int) -
     while len(agents) < agents_n:
         batch = min(PERSONA_BATCH, agents_n - len(agents))
         messages = build_persona_prompt(
-            template, project.language or "tr", batch, idx, "seed" if idx else ""
+            template,
+            project.language or "tr",
+            batch,
+            idx,
+            seed_text if not idx else "",
         )
         result = await gateway.call(
             "persona_synth",
@@ -250,6 +273,7 @@ async def _act_one(
                 "content": action.content,
                 "target": action.target,
                 "emotion": action.emotion,
+                "stance": action.stance,
                 "model": result.model,
             }
             s.add(
@@ -288,6 +312,7 @@ async def _stage_running(s, run, project, template, redis_client, agents: list[A
     project_id = project.id
     run_id = run.id
     language = project.language or "tr"
+    scenario = _scenario_context(project, template)
 
     for round_no in range(1, rounds + 1):
         current = await s.get(Run, run_id)
@@ -310,7 +335,9 @@ async def _stage_running(s, run, project, template, redis_client, agents: list[A
             active = rng.sample(snapshots, k=min(len(snapshots), max(1, len(snapshots) // 10)))
         tasks = []
         for seq, snap in enumerate(active, start=1):
-            messages = build_agent_messages(snap, template, round_no, hour, recent, language)
+            messages = build_agent_messages(
+                snap, template, round_no, hour, recent, language, scenario
+            )
             tasks.append(
                 _act_one(
                     SimpleNamespace(id=run_id, token_budget=current.token_budget),
@@ -386,6 +413,7 @@ async def _stage_report(s, run, project, template, gateway) -> dict:
     source_files = [doc.filename for doc in docs]
     seed_summary = (ontology.seed_summary if ontology else "") or ""
     stats_text = summarize_events(events, len(agents), rounds, platforms)
+    insights = build_run_insights(events, names, language, rounds)
     evidence, bibliography = build_evidence(events, names, source_files)
     fallback = fallback_sections(language)
     try:
@@ -408,7 +436,12 @@ async def _stage_report(s, run, project, template, gateway) -> dict:
     except Exception as exc:  # noqa: BLE001
         log.warning("report_outline_failed", run_id=str(run.id), err=str(exc))
         titles = fallback
-    sections: list[dict] = []
+    sections: list[dict] = [
+        {
+            "title": "Summary metrics" if language == "en" else "Özet metrikler",
+            "body": format_insights_markdown(insights, language),
+        }
+    ]
     for idx, title in enumerate(titles, start=1):
         await _event(
             s,
@@ -480,6 +513,11 @@ async def _stage_report(s, run, project, template, gateway) -> dict:
         "sources": len(source_files),
         "events": len(events),
         "generated_at": datetime.now(UTC).isoformat(),
+        "insights": {
+            "summary": insights["summary"],
+            "actions": insights["actions"][:6],
+            "participants": insights["participants"],
+        },
     }
     await s.commit()
     await _event(
@@ -542,7 +580,9 @@ async def _run(run_id: str) -> dict:
                 "system",
                 {"stage": "population", "message": "Persona popülasyonu üretiliyor"},
             )
-            agents = await _stage_population(s, run, project, template, gateway, agents_n)
+            agents = await _stage_population(
+                s, run, project, template, gateway, agents_n, seed_text
+            )
             await _set_status(s, run_id, "running")
             await _event(
                 s, run_id, 0, 0, "system", {"stage": "running", "message": "Simülasyon başladı"}

@@ -15,6 +15,7 @@ from app.db import AsyncSessionLocal
 from app.models import Agent, Ontology, Project, Run, RunEvent, Template
 from app.plans import free_access_expired, get_plan_limits
 from app.storage import get_bytes
+from engine.insights import build_run_insights
 
 router = APIRouter(prefix="/api")
 
@@ -22,8 +23,19 @@ ACTIVE_STATUSES = {"pending", "ingesting", "ontology", "population", "running", 
 TERMINAL_STATUSES = {"completed", "failed", "canceled"}
 
 
-def _validate_sim_config(cfg: dict, limits: dict, defaults: dict | None = None) -> str | None:
+def _validate_sim_config(
+    cfg: dict,
+    limits: dict,
+    defaults: dict | None = None,
+    template_key: str | None = None,
+) -> str | None:
     defaults = defaults or {}
+    if template_key == "social_post_test":
+        post_text = str(cfg.get("post_text") or "").strip()
+        if len(post_text) < 10:
+            return "social_post_test için en az 10 karakterlik post_text gerekli"
+        if len(post_text) > 4000:
+            return "post_text en fazla 4000 karakter olabilir"
     agents_n = cfg.get("agents_n", defaults.get("agents_n", 60))
     if not isinstance(agents_n, int) or isinstance(agents_n, bool) or not (
         1 <= agents_n <= limits["agents"]
@@ -92,7 +104,7 @@ async def create_project(data: ProjectIn, user=Depends(current_user), db: AsyncS
         raise HTTPException(status_code=400, detail=f"unknown template: {template_key}")
     limits = await _plan_limits_or_402(db, user)
     defaults = (tpl.pack or {}).get("sim_defaults") or {}
-    invalid = _validate_sim_config(data.sim_config, limits, defaults)
+    invalid = _validate_sim_config(data.sim_config, limits, defaults, template_key)
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     project = Project(
@@ -117,7 +129,9 @@ async def create_run(project_id: str, user=Depends(current_user), db: AsyncSessi
     limits = await _plan_limits_or_402(db, user)
     tpl = await db.get(Template, project.template_key)
     defaults = (tpl.pack or {}).get("sim_defaults") if tpl is not None else {}
-    invalid = _validate_sim_config(project.sim_config or {}, limits, defaults or {})
+    invalid = _validate_sim_config(
+        project.sim_config or {}, limits, defaults or {}, project.template_key
+    )
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     run = Run(project_id=project.id, sim_config=project.sim_config)
@@ -141,19 +155,22 @@ async def list_runs(user=Depends(current_user), db: AsyncSession = Depends(get_d
         )
     ).all()
     ids = {r.project_id for r in rows}
-    names = {
-        p.id: p.name
+    projects = {
+        p.id: p
         for p in (await db.scalars(select(Project).where(Project.id.in_(ids)))).all()
     }
     return [
         {
             "id": r.id,
             "project_id": r.project_id,
-            "project_name": names.get(r.project_id),
+            "project_name": projects[r.project_id].name if r.project_id in projects else None,
+            "template_key": (
+                projects[r.project_id].template_key if r.project_id in projects else None
+            ),
+            "language": projects[r.project_id].language if r.project_id in projects else "tr",
             "status": r.status,
             "current_round": r.current_round,
             "tokens_used": r.tokens_used,
-            "cost_usd": str(r.cost_usd),
             "report_ready": bool(r.report_object_key),
             "report_meta": r.report_meta,
             "finished_at": r.finished_at.isoformat() if r.finished_at else None,
@@ -175,12 +192,49 @@ async def get_run(run_id: str, user=Depends(current_user), db: AsyncSession = De
         "status": run.status,
         "current_round": run.current_round,
         "tokens_used": run.tokens_used,
-        "cost_usd": str(run.cost_usd),
         "error": run.error,
         "report_object_key": run.report_object_key,
         "report_meta": run.report_meta,
         "created_at": run.created_at.isoformat() if run.created_at else None,
     }
+
+
+async def _insights_payload(db: AsyncSession, run: Run, project: Project) -> dict:
+    events = (
+        await db.scalars(
+            select(RunEvent)
+            .where(RunEvent.run_id == run.id, RunEvent.event_type != "system")
+            .order_by(RunEvent.round, RunEvent.seq_in_round)
+        )
+    ).all()
+    agents = (await db.scalars(select(Agent).where(Agent.project_id == project.id))).all()
+    names = {agent.id: agent.name for agent in agents}
+    data = build_run_insights(events, names, project.language or "tr", run.current_round)
+    return {
+        "run": {
+            "id": run.id,
+            "project_id": project.id,
+            "project_name": project.name,
+            "template_key": project.template_key,
+            "language": project.language,
+            "status": run.status,
+            "current_round": run.current_round,
+            "report_ready": bool(run.report_object_key),
+            "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+        },
+        **data,
+    }
+
+
+@router.get("/runs/{run_id}/insights")
+async def get_run_insights(
+    run_id: str, user=Depends(current_user), db: AsyncSession = Depends(get_db)
+):
+    run = await _owned_run(db, user, run_id)
+    project = await db.get(Project, run.project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="not found")
+    return await _insights_payload(db, run, project)
 
 
 @router.get("/runs/{run_id}/report")
@@ -298,7 +352,6 @@ async def stream_run_events(
                     "status": status,
                     "round": current.current_round if current else 0,
                     "tokens_used": current.tokens_used if current else 0,
-                    "cost_usd": str(current.cost_usd) if current else "0",
                     "error": current.error if current else None,
                 }
             yield f"event: status\ndata: {json.dumps(snapshot)}\n\n"

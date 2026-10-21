@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, shortId, TEMPLATES } from "../api.js";
+import { ACTIVE_STATUSES, api, fmtDate, fmtTokens, shortId, TEMPLATES } from "../api.js";
 import Icon from "../icons.jsx";
 
 const TILE_COLORS = [
@@ -34,7 +34,7 @@ export default function Dashboard() {
   const active = runs.filter((r) => ACTIVE_STATUSES.includes(r.status)).length;
   const done = runs.filter((r) => r.status === "completed").length;
   const tokens = runs.reduce((a, r) => a + (r.tokens_used || 0), 0);
-  const cost = runs.reduce((a, r) => a + Number(r.cost_usd || 0), 0);
+  const reports = runs.filter((r) => r.report_ready).length;
   const recent = runs.slice(0, 6);
 
   return (
@@ -58,8 +58,8 @@ export default function Dashboard() {
           <div className="stat-label">Simülasyon</div><div className="stat-value">{runs.length}</div><div className="stat-sub">{active} çalışıyor · {done} tamamlandı</div></div>
         <div className="card stat"><span className="stat-icon" style={{ background: "#fffbeb", color: "#b45309" }}><Icon name="chart" size={18} /></span>
           <div className="stat-label">Token</div><div className="stat-value">{fmtTokens(tokens)}</div><div className="stat-sub">toplam kullanılan</div></div>
-        <div className="card stat"><span className="stat-icon" style={{ background: "#fdf2f8", color: "#be185d" }}><Icon name="card" size={18} /></span>
-          <div className="stat-label">Maliyet</div><div className="stat-value">{fmtCost(cost)}</div><div className="stat-sub">kümülatif LLM maliyeti</div></div>
+        <Link className="card stat" to="/app/reports" style={{ color: "inherit" }}><span className="stat-icon" style={{ background: "#eef2ff", color: "#4338ca" }}><Icon name="doc" size={18} /></span>
+          <div className="stat-label">Rapor</div><div className="stat-value">{reports}</div><div className="stat-sub">analiz ve indirme</div></Link>
       </div>
 
       <div className="card">
@@ -93,14 +93,14 @@ export default function Dashboard() {
         ) : (
           <div className="table-wrap">
             <table className="tbl">
-              <thead><tr><th>Koşu</th><th>Proje</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th className="num">Maliyet</th><th>Başlangıç</th></tr></thead>
+              <thead><tr><th>Koşu</th><th>Proje</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th>Başlangıç</th></tr></thead>
               <tbody>
                 {recent.map((r) => (
                   <tr key={r.id}>
                     <td><Link className="mono" to={`/app/runs/${r.id}`}>{shortId(r.id)}</Link></td>
                     <td style={{ fontWeight: 600 }}>{r.project_name ?? "—"}</td>
                     <td>{statusBadge(r.status)}</td>
-                    <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="num">{fmtCost(r.cost_usd)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
+                    <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -106,6 +106,20 @@ FICTION_REVIEW = TopicTemplate(
     sim_defaults={"agents_n": 50, "rounds": 20, "platforms": 1},
 )
 
+SOCIAL_POST_TEST = TopicTemplate(
+    key="social_post_test",
+    name="Sosyal Medya Gönderisi",
+    description=(
+        "Hazırlanan bir gönderiyi hedef kitleye sunup beğeni, itiraz ve "
+        "kararsızlık sinyallerini ölçün."
+    ),
+    entity_types=["Post", "Audience", "Claim", "Emotion", "Channel"],
+    relation_types=["likes", "dislikes", "shares", "questions", "skips"],
+    persona_fields=["age_group", "platform_habit", "brand_affinity", "skepticism"],
+    action_space=["like", "comment", "share", "dislike", "skip", "silent"],
+    sim_defaults={"agents_n": 80, "rounds": 20, "platforms": 2},
+)
+
 _TEMPLATES = [
     MARKET_RESEARCH,
     PUBLIC_OPINION,
@@ -113,6 +127,7 @@ _TEMPLATES = [
     PRICE_PROBE,
     POLICY_REVIEW,
     FICTION_REVIEW,
+    SOCIAL_POST_TEST,
 ]
 
 

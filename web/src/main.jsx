@@ -6,6 +6,7 @@ import AppShell from "./components/AppShell.jsx";
 import App from "./App.jsx";
 import Admin from "./pages/Admin.jsx";
 import AdminBilling from "./pages/AdminBilling.jsx";
+import AdminBlog from "./pages/AdminBlog.jsx";
 import ApiAccess from "./pages/ApiAccess.jsx";
 import Billing from "./pages/Billing.jsx";
 import Blog from "./pages/Blog.jsx";
@@ -16,6 +17,7 @@ import Register from "./pages/Register.jsx";
 import NewProject from "./pages/NewProject.jsx";
 import ProjectDetail from "./pages/ProjectDetail.jsx";
 import Projects from "./pages/Projects.jsx";
+import ReportDetail from "./pages/ReportDetail.jsx";
 import Reports from "./pages/Reports.jsx";
 import RunDetail from "./pages/RunDetail.jsx";
 import Runs from "./pages/Runs.jsx";
@@ -40,11 +42,13 @@ createRoot(document.getElementById("root")).render(
           <Route path="runs" element={<Runs />} />
           <Route path="runs/:id" element={<RunDetail />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="reports/:id" element={<ReportDetail />} />
           <Route path="api" element={<ApiAccess />} />
           <Route path="billing" element={<Billing />} />
           <Route path="settings" element={<Settings />} />
           <Route path="admin" element={<Admin />} />
           <Route path="admin/billing" element={<AdminBilling />} />
+          <Route path="admin/blog" element={<AdminBlog />} />
         </Route>
         <Route
           path="*"

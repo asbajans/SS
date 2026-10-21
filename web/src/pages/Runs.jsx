@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, shortId } from "../api.js";
+import { ACTIVE_STATUSES, api, fmtDate, fmtTokens, shortId } from "../api.js";
 import Icon from "../icons.jsx";
 
 function statusBadge(s) {
@@ -43,13 +43,13 @@ export default function Runs() {
       ) : (
         <div className="card table-wrap">
           <table className="tbl">
-            <thead><tr><th>Koşu</th><th>Proje</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th className="num">Maliyet</th><th>Başlangıç</th></tr></thead>
+            <thead><tr><th>Koşu</th><th>Proje</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th>Başlangıç</th></tr></thead>
             <tbody>
               {runs.map((r) => (
                 <tr key={r.id}>
                   <td><Link className="mono" to={`/app/runs/${r.id}`}>{shortId(r.id)}</Link></td>
                   <td>{r.project_name ?? "—"}</td><td>{statusBadge(r.status)}</td>
-                  <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="num">{fmtCost(r.cost_usd)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
+                  <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
                 </tr>
               ))}
             </tbody>

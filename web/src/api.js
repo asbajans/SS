@@ -76,12 +76,13 @@ export const TEMPLATES = [
   { key: "price_probe", name: "Fiyat Testi", desc: "Ödeme isteği eğrileri ve fiyat kancası tepkilerini ölçün." },
   { key: "policy_review", name: "Politika & Düzenleme", desc: "Paydaş tepkileri, destek–itiraz dengesi ve çatışma haritası." },
   { key: "fiction_review", name: "Kurgusal Dünya", desc: "Karakter tutarlılığı, ilişki dinamikleri ve topluluk tepkisi." },
+  { key: "social_post_test", name: "Sosyal Medya Gönderisi", desc: "Hazırlanan gönderiyi hedef kitleye sunup beğeni, itiraz ve kararsızlık sinyallerini ölçün." },
 ];
 
 export const PROFILES = [
-  { key: "fast", name: "Hızlı", agents_n: 80, rounds: 24, platforms: 1, cost: "~$0,10–0,35", hint: "Hızlı sinyal taraması" },
-  { key: "std", name: "Standart", agents_n: 150, rounds: 40, platforms: 2, cost: "~$0,45–1,40", hint: "Önerilen denge" },
-  { key: "deep", name: "Derin", agents_n: 250, rounds: 72, platforms: 2, cost: "~$1,15–3,60", hint: "Yüksek derinlik" },
+  { key: "fast", name: "Hızlı", agents_n: 80, rounds: 24, platforms: 1, hint: "Hızlı sinyal taraması" },
+  { key: "std", name: "Standart", agents_n: 150, rounds: 40, platforms: 2, hint: "Önerilen denge" },
+  { key: "deep", name: "Derin", agents_n: 250, rounds: 72, platforms: 2, hint: "Yüksek derinlik" },
 ];
 
 export const STAGES = [

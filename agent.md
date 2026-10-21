@@ -238,6 +238,7 @@ Zaman/sim konfigürasyonu (`run.sim_config`): `agents_n, rounds, platforms, peak
 | **F6 - Rapor kütüphanesi** | 14 | Tamamlanan raporların listesi, arama, PDF/MD indirme; `report_ready` alanı | Kullanıcı tüm raporlarını tek ekranda görür, arama yapar ve PDF/MD indirir; boş durum yönlendirmesi çalışır |
 | **F7 - Pazarlama sitesi** | 15 | Public blog (TR/EN), landing animasyonları, blog navigasyonu | `/blog` ve `/blog/{slug}` yayında; landing'de blog linki, reveal animasyonları ve prefers-reduced-motion desteği |
 | **F8 - API platformu** | 16 | API anahtarları, `/api/v1` proje/run/rapor uçları, HMAC imzalı webhook'lar, geliştirici UI | Anahtar ile proje oluşturup run başlatma ve rapor indirme uçtan uca çalışır; webhook imzası doğrulanır, SSRF engellenir |
+| **F9 - Görüş analizi + içerik** | 17 | Görüş/karar dağılımı, neden temaları ve grafikli rapor analizi; `social_post_test` senaryosu; AI blog editörü + zamanlanmış yayın; müşteri arayüzünde maliyet gizleme | Müşteri maliyet görmez; rapor ekranı olumlu/olumsuz/kararsız yüzdelerini, gerekçeleri ve yorumları gösterir; hazır gönderi hedef kitleye test edilir; admin konu kuyruğu ve otomatik yayın aralığını yönetir |
 
 Kaynak: 1 dev tam zamanlı + 1 UI/barkı → ~13 hafta; 2 dev → ~10–14 hafta.
 

@@ -17,8 +17,12 @@ celery_app.conf.update(
     worker_max_tasks_per_child=20,
     task_time_limit=3600 * 3,
     task_soft_time_limit=3600 * 3 - 60,
+    beat_schedule={
+        "blog-tick": {"task": "blog.tick", "schedule": 300.0},
+    },
 )
 
+import app.tasks.blog  # noqa: E402,F401  (registers "blog.tick" / "blog.generate_topic")
 import app.tasks.ingest  # noqa: E402,F401  (registers "ingest.document")
 import app.tasks.pipeline  # noqa: E402,F401  (registers shared_task "pipeline.run")
 import app.tasks.privacy  # noqa: E402,F401  (registers "privacy.delete_user")

@@ -10,6 +10,7 @@ const NAV = [
   { to: "/app/runs", icon: "activity", label: "Simülasyonlar" },
   { to: "/app/reports", icon: "doc", label: "Raporlar" },
   { to: "/app/api", icon: "box", label: "API & Entegrasyon" },
+  { to: "/blog", icon: "doc", label: "Blog" },
 ];
 
 const NAV_BOTTOM = [
@@ -25,6 +26,8 @@ const TITLES = [
   ["/app/reports", "Raporlar"],
   ["/app/billing", "Plan & Faturalama"],
   ["/app/settings", "Ayarlar"],
+  ["/app/admin/blog", "Blog editörü"],
+  ["/app/admin/billing", "Faturalama yönetimi"],
   ["/app/admin", "Yönetim"],
   ["/app", "Genel Bakış"],
 ];
@@ -32,6 +35,7 @@ const TITLES = [
 function pageTitle(path) {
   if (/^\/app\/projects\/.+/.test(path)) return "Proje Detayı";
   if (/^\/app\/runs\/.+/.test(path)) return "Simülasyon Detayı";
+  if (/^\/app\/reports\/.+/.test(path)) return "Rapor Analizi";
   const hit = TITLES.find(([p]) => path.startsWith(p));
   return hit ? hit[1] : "Social Simulation";
 }
@@ -73,10 +77,16 @@ export default function AppShell() {
             </NavLink>
           ))}
           {user.is_admin && (
-            <NavLink to="/app/admin" className="nav-item">
-              <Icon name="shield" />
-              <span>Yönetim</span>
-            </NavLink>
+            <>
+              <NavLink to="/app/admin" className="nav-item" end>
+                <Icon name="shield" />
+                <span>Yönetim</span>
+              </NavLink>
+              <NavLink to="/app/admin/blog" className="nav-item">
+                <Icon name="doc" />
+                <span>Blog editörü</span>
+              </NavLink>
+            </>
           )}
         </nav>
         <div className="nav-group-label">Hesap</div>

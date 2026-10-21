@@ -13,7 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import current_user, get_db
 from app.models import ApiKey, Project, Run, Template, User, Webhook
-from app.runs_api import ProjectIn, _plan_limits_or_402, _validate_sim_config
+from app.runs_api import (
+    ProjectIn,
+    _insights_payload,
+    _plan_limits_or_402,
+    _validate_sim_config,
+)
 from app.storage import get_bytes
 from app.webhooks import EVENTS, validate_webhook_url
 
@@ -231,7 +236,7 @@ async def v1_create_project(
         raise HTTPException(status_code=400, detail=f"unknown template: {data.template_key}")
     limits = await _plan_limits_or_402(db, user)
     defaults = (tpl.pack or {}).get("sim_defaults") or {}
-    invalid = _validate_sim_config(data.sim_config, limits, defaults)
+    invalid = _validate_sim_config(data.sim_config, limits, defaults, data.template_key)
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     project = Project(
@@ -258,7 +263,9 @@ async def v1_create_run(
     limits = await _plan_limits_or_402(db, user)
     tpl = await db.get(Template, project.template_key)
     defaults = (tpl.pack or {}).get("sim_defaults") if tpl is not None else {}
-    invalid = _validate_sim_config(project.sim_config or {}, limits, defaults or {})
+    invalid = _validate_sim_config(
+        project.sim_config or {}, limits, defaults or {}, project.template_key
+    )
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     run = Run(project_id=project.id, sim_config=project.sim_config)
@@ -317,13 +324,23 @@ async def v1_run(
         "status": run.status,
         "current_round": run.current_round,
         "tokens_used": run.tokens_used,
-        "cost_usd": str(run.cost_usd),
         "error": run.error,
         "report_ready": bool(run.report_object_key),
         "report_meta": run.report_meta,
         "created_at": run.created_at.isoformat() if run.created_at else None,
         "finished_at": run.finished_at.isoformat() if run.finished_at else None,
     }
+
+
+@router.get("/v1/runs/{run_id}/insights")
+async def v1_run_insights(
+    run_id: uuid.UUID, user=Depends(api_key_user), db: AsyncSession = Depends(get_db)
+) -> dict:
+    run = await _owned_run(db, user, run_id)
+    project = await db.get(Project, run.project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="not found")
+    return await _insights_payload(db, run, project)
 
 
 @router.get("/v1/runs/{run_id}/report/download")

@@ -26,6 +26,7 @@ TASK_KEYS = [
     "report_outline",
     "report_section",
     "agent_interview",
+    "blog_editor",
 ]
 
 

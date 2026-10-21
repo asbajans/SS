@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { ACTIVE_STATUSES, api, fmtCost, fmtDate, fmtTokens, PROFILES, shortId, TEMPLATES, uploadDocument } from "../api.js";
+import { ACTIVE_STATUSES, api, fmtDate, fmtTokens, PROFILES, shortId, TEMPLATES, uploadDocument } from "../api.js";
 import Icon from "../icons.jsx";
 
 const TABS = ["Genel Bakış", "Simülasyonlar", "Belgeler", "Ontoloji & Ajanlar", "Rapor"];
@@ -94,7 +94,6 @@ export default function ProjectDetail() {
 
   const tpl = TEMPLATES.find((t) => t.key === project.template_key);
   const tokens = runs.reduce((a, r) => a + (r.tokens_used || 0), 0);
-  const cost = runs.reduce((a, r) => a + Number(r.cost_usd || 0), 0);
   const lastRun = runs[0];
 
   return (
@@ -131,6 +130,24 @@ export default function ProjectDetail() {
               <dt>Açıklama</dt><dd className="text-2">{tpl?.desc ?? "—"}</dd>
               <dt>Dil</dt><dd>{(project.language ?? "tr").toUpperCase()}</dd>
               <dt>Profil</dt><dd>{profileLabel(project.sim_config)}</dd>
+              {project.sim_config?.post_text && (
+                <>
+                  <dt>Test gönderisi</dt>
+                  <dd className="text-2">{project.sim_config.post_text}</dd>
+                </>
+              )}
+              {project.sim_config?.audience && (
+                <>
+                  <dt>Hedef kitle</dt>
+                  <dd>{project.sim_config.audience}</dd>
+                </>
+              )}
+              {project.sim_config?.brief && (
+                <>
+                  <dt>Brief</dt>
+                  <dd className="text-2">{project.sim_config.brief}</dd>
+                </>
+              )}
               <dt>Oluşturma</dt><dd>{fmtDate(project.created_at)}</dd>
               <dt>Proje ID</dt><dd className="mono small">{project.id}</dd>
             </dl>
@@ -146,7 +163,6 @@ export default function ProjectDetail() {
               </div>
             </div>
             <dl className="kv">
-              <dt>Maliyet</dt><dd>{fmtCost(cost)}</dd>
               <dt>Son koşu</dt><dd>{lastRun ? (<Link className="mono" to={`/app/runs/${lastRun.id}`}>{shortId(lastRun.id)} · {lastRun.status}</Link>) : "—"}</dd>
             </dl>
             <div className="notice"><Icon name="bell" size={15} /><span>Bu projenin tüm çıktıları simülasyon ürünüdür; saha araştırması değildir.</span></div>
@@ -167,13 +183,13 @@ export default function ProjectDetail() {
           ) : (
             <div className="table-wrap">
               <table className="tbl">
-                <thead><tr><th>Koşu</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th className="num">Maliyet</th><th>Başlangıç</th></tr></thead>
+                <thead><tr><th>Koşu</th><th>Durum</th><th className="num">Tur</th><th className="num">Token</th><th>Başlangıç</th></tr></thead>
                 <tbody>
                   {runs.map((r) => (
                     <tr key={r.id}>
                       <td><Link className="mono" to={`/app/runs/${r.id}`}>{shortId(r.id)}</Link></td>
                       <td>{statusBadge(r.status)}</td>
-                      <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="num">{fmtCost(r.cost_usd)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
+                      <td className="num">{r.current_round ?? 0}</td><td className="num">{fmtTokens(r.tokens_used)}</td><td className="muted small">{fmtDate(r.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>

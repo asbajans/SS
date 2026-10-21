@@ -31,7 +31,6 @@ class ChatOut(BaseModel):
     model: str
     prompt_tokens: int
     completion_tokens: int
-    cost_usd: float
     status: str
     fallback_used: str | None = None
 
@@ -73,7 +72,6 @@ async def chat_completions(
             model=result.model,
             prompt_tokens=result.prompt_tokens,
             completion_tokens=result.completion_tokens,
-            cost_usd=result.cost_usd,
             status=result.status,
             fallback_used=result.fallback_used,
         )
