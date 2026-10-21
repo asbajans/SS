@@ -320,3 +320,23 @@ Deploy akışı:
 - Panelde TR/EN anahtari topbar'da (`lang-pill`); landing (`App.jsx`) ve blog sayfalari ayni `ss_lang` degerini paylasir.
 - Yeni proje olustururken rapor dili secimi `ss_lang` degerinden baslar.
 - Not: API'den gelen veri (proje adi, blog yazi basligi, kullanici e-postasi) cevrilmez; yalnizca arayuz metinleri cevrilir.
+---
+
+## 17) Stripe odemesi aktif (2026-10-21)
+
+- Stripe hesabi: `acct_1QS6lOKvANizrFVT` (CRAFTERS GROUP LLC), anahtar `sk_live_...` stack env'inde (`STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`).
+- Uygulanan urunler (canli mod): Starter `price_1UT3gTKvANizrFVTE6oPRtag` ($29/ay), Pro `price_1UT3gUKvANizrFVTdSO43fcd` ($99/ay), 5M token kredisi `price_1UT3gWKvANizrFVTiQjRzH98` ($19 tek sefer). Fiyat ID'leri hem `plan_configs.stripe_price_id` / `credit_packs.stripe_price_id` DB'ye yazildi hem de stack env'ine (`STRIPE_PRICE_*`).
+- Webhook: `https://api.socialsimulator.com.tr/api/billing/webhook` (endpoint `we_1UT3imKvANizrFVTviik3sLJ`), signing secret stack env'inde `STRIPE_WEBHOOK_SECRET`. Olaylar: checkout.session.completed, customer.subscription.created/updated/deleted, invoice.paid, invoice.payment_failed.
+- Stripe tax ID toplama icin checkout session'da `customer_update={"name":"auto","address":"auto"}` gerekli (hesap business name'i otomatik doldurur); aksi halde Stripe 502 doner.
+- Checkout donus URL'leri `/app/billing?checkout=success|cancel` (SPA route).
+- Dogrulama: canli checkout session olusturuldu (cs_live_...), imzali webhook eventi ile plan yukseltme (free -> starter, 8M token) ve duplicate event korumasi test edildi; test kullanici DSR ile silindi.
+
+### 17.1 Portainer / CI notlari (kritik)
+
+- Stack yeniden olusturuldu: **stack id 99** (eski 97 silindi), tip Compose, Git kaynakli (`https://github.com/asbajans/SS`, `refs/heads/main`, `docker-compose.yml`). 40 env degiskeni korundu.
+- CI deploy: `POST <webhook>` (secret `PORTAINER_WEBHOOK_URL` repo secret'inda) -> Portainer Git pull + redeploy. `PUT /api/stacks/{id}/git/redeploy` **kullanma**: payload'daki `Env` ve `RepositoryReferenceName` alanlarini EZER (env kaybolur, ref bosalir).
+- Git baglantisi olan stack'i `PUT /api/stacks/{id}` ile guncelleme: `stackFileContent` gonderirsen GitConfig silinir (stack standalone kalir). Git config'i `POST /api/stacks/{id}/git` (RepositoryReferenceName + Env + AutoUpdate) ile onar.
+- Cloudflare `Python-urllib` User-Agent'ini 403 ile engelliyor; CI/API cagrilarinda `User-Agent: SSDeploy/1.0` kullan.
+- Cloudflare 100sn istek siniri var: uzun sureli redeploy API cagrisi 524 verir; webhook (asenkron) tercih edilmeli.
+- Portainer yeni stack olusturma: `POST /api/stacks/create/standalone/repository?endpointId=2` (type: swarm|standalone|kubernetes; method: string|repository|file). Env `[{name,value}]`, git alanlari duz (`RepositoryURL`, `ReferenceName`, `ConfigFilePath`).
+- `PUT /api/stacks/{id}` icin `?endpointId=2` query parametresi zorunlu.
