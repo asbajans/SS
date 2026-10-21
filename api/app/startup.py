@@ -37,6 +37,8 @@ _MIGRATIONS = [
     )""",
     "CREATE INDEX IF NOT EXISTS idx_privacy_status ON privacy_requests(status, requested_at)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_balance BIGINT NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS billing_period_end TIMESTAMPTZ",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS usage_period_start TIMESTAMPTZ",

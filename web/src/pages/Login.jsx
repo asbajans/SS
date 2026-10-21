@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { login } from "../api.js";
+import GoogleAuth from "../components/GoogleAuth.jsx";
 import Icon from "../icons.jsx";
 
 export default function Login() {
@@ -16,10 +17,18 @@ export default function Login() {
     setBusy(true); setError(null);
     try {
       await login(email, password);
-      nav(sessionStorage.getItem("ss_prompt") ? "/app/projects/new" : "/app");
+      nav("/app");
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
+
+  const onGoogleSuccess = useCallback(() => {
+    nav(sessionStorage.getItem("ss_prompt") ? "/app/projects/new" : "/app");
+  }, [nav]);
+
+  const onGoogleError = useCallback((err) => {
+    setError(err.message);
+  }, []);
 
   return (
     <div className="auth-wrap">
@@ -47,6 +56,7 @@ export default function Login() {
           <p className="text-2" style={{ marginTop: 6, fontSize: 14 }}>
             Simülasyon panelinize devam etmek için giriş yapın.
           </p>
+          <GoogleAuth onSuccess={onGoogleSuccess} onError={onGoogleError} lang="tr" />
           <form onSubmit={submit}>
             <div className="field">
               <label htmlFor="email">E-posta</label>

@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     first_admin_email: str = ""
     first_admin_password: str = ""
 
+    # google sign-in (public client id, comma separated for multiple origins)
+    google_client_id: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

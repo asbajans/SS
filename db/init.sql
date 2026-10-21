@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email         TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    google_id     TEXT,
     plan          TEXT NOT NULL DEFAULT 'free',
     is_admin      BOOLEAN NOT NULL DEFAULT FALSE,
     monthly_token_budget   BIGINT NOT NULL DEFAULT 1000000,
@@ -34,8 +35,10 @@ CREATE TABLE IF NOT EXISTS credit_ledger (
     delta       BIGINT NOT NULL,
     reason      TEXT NOT NULL,
     stripe_ref  TEXT,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_credit_ledger_user ON credit_ledger(user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS plan_configs (

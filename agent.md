@@ -302,3 +302,12 @@ Deploy akışı:
 - Marka varliklari: kok dizindeki logo.jpg, icon.jpg, icon.ico -> web/public/logo-light.png, web/public/logo.png, web/public/icon-mark.png, web/public/icon-192.png, web/public/icon.ico (beyaz arka plan saydamlastirildi). Favicon: icon.ico.
 - Landing sayfasi tek sayfadir: hem socialsimulator.com.tr hem app.socialsimulator.com.tr kok yolunda ayni SPA acilir; panel /app altindadir. Yeni host icin yeni port gerekmez: cloudflared Public Hostname olarak socialsimulator.com.tr -> http://localhost:3900 eklenir (web nginx /api isteklerini api:8000 konteynerine proxy'ler).
 - Landing istem kutusu sessionStorage.ss_prompt ile giris/kayit sonrasi /app/projects/new sayfasina proje adi + brief olarak aktarilir.
+---
+
+## 15) Google ile giris (GIS ID token)
+
+- Akis: SPA -> Google Identity Services butonu -> `POST /api/auth/google` (ID token JWT) -> API imzayi Google JWKS ile dogrular (RS256, aud = client id, iss = accounts.google.com, email_verified) -> kullaniciyi olusturur/eskisiyle birlestirir -> kendi JWT'mizi dondurur.
+- Client secret gerekmez (public client, sadece client id). `GOOGLE_CLIENT_ID` env degiskeni virgulle ayrilmis birden fazla id destekler.
+- Dosyalar: `api/app/google_auth.py` (dogrulama), `api/app/auth.py` (`GET /api/auth/google/config`, `POST /api/auth/google`), `web/src/google.js` (GIS script yukleyici), `web/src/components/GoogleAuth.jsx` (buton), `api/tests/test_google_auth.py`.
+- Veritabani: `users.google_id` kolonu (nullable, unique) - `startup.py` migration + `db/init.sql`.
+- Kapaliysa `GET /api/auth/google/config` -> `{enabled:false}` ve arayuzde buton gorunmez; `POST` 403 yerine 503 doner.

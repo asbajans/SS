@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { register } from "../api.js";
+import GoogleAuth from "../components/GoogleAuth.jsx";
 import Icon from "../icons.jsx";
 
 export default function Register() {
@@ -20,6 +21,14 @@ export default function Register() {
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
+
+  const onGoogleSuccess = useCallback(() => {
+    nav(sessionStorage.getItem("ss_prompt") ? "/app/projects/new" : "/app");
+  }, [nav]);
+
+  const onGoogleError = useCallback((err) => {
+    setError(err.message);
+  }, []);
 
   return (
     <div className="auth-wrap">
@@ -46,6 +55,7 @@ export default function Register() {
           <p className="text-2" style={{ marginTop: 6, fontSize: 14 }}>
             E-posta ve şifre yeterli; kart bilgisi gerektirmez.
           </p>
+          <GoogleAuth onSuccess={onGoogleSuccess} onError={onGoogleError} lang="tr" />
           <form onSubmit={submit}>
             <div className="field">
               <label htmlFor="email">E-posta</label>

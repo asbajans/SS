@@ -1,4 +1,7 @@
 """Auth routes + request-user dependency."""
+import asyncio
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
@@ -6,6 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import AsyncSessionLocal
+from app.google_auth import (
+    GoogleAuthError,
+    google_client_ids,
+    google_login_enabled,
+    verify_google_id_token,
+)
 from app.models import User
 from app.security import decode_token, hash_password, make_token, verify_password
 
@@ -21,6 +30,10 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+
+
+class GoogleLoginIn(BaseModel):
+    credential: str
 
 
 async def get_db() -> AsyncSession:
@@ -67,3 +80,39 @@ async def login(data: LoginIn, db: AsyncSession = Depends(get_db)) -> dict:
 @router.get("/me")
 async def me(user: User = Depends(current_user)) -> dict:
     return {"id": user.id, "email": user.email, "plan": user.plan, "is_admin": user.is_admin}
+
+
+@router.get("/google/config")
+async def google_config() -> dict:
+    client_ids = google_client_ids()
+    return {"enabled": bool(client_ids), "client_id": client_ids[0] if client_ids else ""}
+
+
+@router.post("/google")
+async def google_login(data: GoogleLoginIn, db: AsyncSession = Depends(get_db)) -> dict:
+    if not google_login_enabled():
+        raise HTTPException(status_code=503, detail="google login is not enabled")
+    try:
+        identity = await asyncio.to_thread(verify_google_id_token, data.credential)
+    except GoogleAuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    email = identity["email"]
+    google_sub = identity["sub"] or None
+    user = (await db.scalars(select(User).where(User.email == email))).first()
+    if user is None:
+        user = User(
+            email=email,
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+            google_id=google_sub,
+        )
+        db.add(user)
+    elif user.google_id is None and google_sub:
+        user.google_id = google_sub
+    await db.commit()
+    await db.refresh(user)
+    return {
+        "id": user.id,
+        "email": user.email,
+        "is_admin": user.is_admin,
+        "token": make_token(str(user.id), user.is_admin),
+    }

@@ -35,6 +35,7 @@ class User(Base):
     id: Mapped[uuid.UUID] = uid()
     email: Mapped[str] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str] = mapped_column(String(256))
+    google_id: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
     plan: Mapped[str] = mapped_column(String(32), default="free")
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     monthly_token_budget: Mapped[int] = mapped_column(BigInteger, default=1_000_000)

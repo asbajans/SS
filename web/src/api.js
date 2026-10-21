@@ -64,6 +64,19 @@ export async function register(email, password) {
   return data;
 }
 
+export async function googleConfig() {
+  return request("/api/auth/google/config");
+}
+
+export async function googleLogin(credential) {
+  const data = await request("/api/auth/google", {
+    method: "POST",
+    body: JSON.stringify({ credential }),
+  });
+  setToken(data.token);
+  return data;
+}
+
 export function logout() {
   clearToken();
   window.location.href = "/login";
