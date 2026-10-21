@@ -127,8 +127,8 @@ async def checkout(
     if pack is not None and not pack["price_id"]:
         raise HTTPException(status_code=400, detail="kredi paketi fiyatı tanımlı değil")
 
-    success_url = body.success_url or f"{_base_url()}/billing?checkout=success"
-    cancel_url = body.cancel_url or f"{_base_url()}/billing?checkout=cancel"
+    success_url = body.success_url or f"{_base_url()}/app/billing?checkout=success"
+    cancel_url = body.cancel_url or f"{_base_url()}/app/billing?checkout=cancel"
     metadata = {"user_id": str(user.id)}
     try:
         customer_id = await _ensure_customer(db, user)
@@ -179,7 +179,7 @@ async def portal(
         session = await asyncio.to_thread(
             stripe.billing_portal.Session.create,
             customer=user.stripe_customer_id,
-            return_url=f"{_base_url()}/billing",
+            return_url=f"{_base_url()}/app/billing",
         )
     except stripe.StripeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
