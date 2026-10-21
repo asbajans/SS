@@ -72,7 +72,11 @@ async def list_projects(user=Depends(current_user), db: AsyncSession = Depends(g
 
 async def _plan_limits_or_402(db: AsyncSession, user) -> dict:
     limits = await get_plan_limits(db, user.plan)
-    if user.plan == "free" and free_access_expired(user.created_at, limits["free_days"]):
+    if (
+        user.plan == "free"
+        and free_access_expired(user.created_at, limits["free_days"])
+        and (user.credit_balance or 0) <= 0
+    ):
         raise HTTPException(
             status_code=402,
             detail="Ücretsiz dönem sona erdi; planınızı yükseltin veya kredi yükleyin",

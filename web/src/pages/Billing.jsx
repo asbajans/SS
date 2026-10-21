@@ -237,7 +237,7 @@ export default function Billing() {
         </>
       )}
 
-      {me?.free_expired && <div className="notice"><Icon name="bell" size={15} /><span>{t.freeExpired}</span></div>}
+      {me?.free_expired && (me?.credit_balance ?? 0) <= 0 && <div className="notice"><Icon name="bell" size={15} /><span>{t.freeExpired}</span></div>}
       {!stripeOn && <div className="notice"><Icon name="card" size={15} /><span>{t.off}</span></div>}
     </>
   );
