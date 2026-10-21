@@ -68,10 +68,17 @@ jobs:
                   api + path,
                   data=data,
                   method=method,
-                  headers={"X-API-Key": key, "Content-Type": "application/json"},
+                  headers={
+                      "X-API-Key": key,
+                      "Content-Type": "application/json",
+                      "User-Agent": "SSDeploy/1.0",
+                  },
               )
-              with urllib.request.urlopen(req, timeout=300) as resp:
-                  raw = resp.read()
+              try:
+                  with urllib.request.urlopen(req, timeout=300) as resp:
+                      raw = resp.read()
+              except urllib.error.HTTPError as exc:
+                  raise SystemExit(f"{method} {path} -> {exc.code}: {exc.read()[:400]}")
               return json.loads(raw) if raw else {}
 
           stack = call("GET", f"/stacks/{stack_id}")
