@@ -310,4 +310,4 @@ Deploy akışı:
 - Client secret gerekmez (public client, sadece client id). `GOOGLE_CLIENT_ID` env degiskeni virgulle ayrilmis birden fazla id destekler.
 - Dosyalar: `api/app/google_auth.py` (dogrulama), `api/app/auth.py` (`GET /api/auth/google/config`, `POST /api/auth/google`), `web/src/google.js` (GIS script yukleyici), `web/src/components/GoogleAuth.jsx` (buton), `api/tests/test_google_auth.py`.
 - Veritabani: `users.google_id` kolonu (nullable, unique) - `startup.py` migration + `db/init.sql`.
-- Kapaliysa `GET /api/auth/google/config` -> `{enabled:false}` ve arayuzde buton gorunmez; `POST` 403 yerine 503 doner.
+- Kapaliysa `GET /api/auth/google/config` -> `{enabled:false}` ve arayuzde buton gorunmez; `POST` 403 yerine 503 doner.- Google Identity Services (OAuth 2.0, ID token) ek bir SaaS olarak 2026-10-21 onaylandi; client secret kullanilmaz, sadece `GOOGLE_CLIENT_ID` (public client id) env degiskeni. Dogrulama: RS256 JWKS (cryptography paketi) + tokeninfo yedegi.

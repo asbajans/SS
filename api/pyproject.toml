@@ -27,6 +27,7 @@ dependencies = [
   "celery>=5.3",
   "argon2-cffi>=23.1",
   "pyjwt>=2.8",
+  "cryptography>=42",
   "pgvector>=0.2.5",
   "pypdf>=4.0",
   "python-multipart>=0.0.9",

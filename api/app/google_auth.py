@@ -7,9 +7,13 @@ needed in this flow, so only a public client id is stored in the environment.
 """
 import httpx
 import jwt
-from jwt import PyJWKClient
 
 from app.config import settings
+
+try:
+    from jwt import PyJWKClient
+except Exception:  # noqa: BLE001 - optional crypto backend
+    PyJWKClient = None  # type: ignore[assignment]
 
 JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
@@ -30,6 +34,8 @@ def google_login_enabled() -> bool:
 
 
 def _decode_with_jwks(id_token: str, audience: list[str]) -> dict:
+    if PyJWKClient is None:
+        raise RuntimeError("cryptography backend unavailable")
     signing_key = PyJWKClient(JWKS_URL).get_signing_key_from_jwt(id_token)
     return jwt.decode(
         id_token,
