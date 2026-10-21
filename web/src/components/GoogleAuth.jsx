@@ -5,46 +5,54 @@ import { renderGoogleButton } from "../google.js";
 
 export default function GoogleAuth({ onSuccess, onError, lang = "tr" }) {
   const slot = useRef(null);
-  const [state, setState] = useState({ enabled: false, error: null });
+  const [clientId, setClientId] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let alive = true;
     googleConfig()
       .then((cfg) => {
-        if (!alive || !cfg?.enabled || !slot.current) return;
-        renderGoogleButton(slot.current, cfg.client_id, {
-          hl: lang === "en" ? "en" : "tr",
-          onCredential: async (credential) => {
-            try {
-              const data = await googleLogin(credential);
-              onSuccess?.(data);
-            } catch (err) {
-              onError?.(err);
-            }
-          },
-        })
-          .then(() => {
-            if (alive) setState({ enabled: true, error: null });
-          })
-          .catch(() => {
-            if (alive) {
-              setState({ enabled: false, error: "Google girişi şu anda yüklenemedi." });
-            }
-          });
+        if (!alive || !cfg?.enabled) return;
+        setClientId(cfg.client_id);
       })
       .catch(() => {});
     return () => {
       alive = false;
     };
-  }, [lang, onSuccess, onError]);
+  }, []);
 
-  if (!state.enabled && !state.error) return null;
+  useEffect(() => {
+    if (!clientId) return undefined;
+    let alive = true;
+    renderGoogleButton(slot.current, clientId, {
+      hl: lang === "en" ? "en" : "tr",
+      onCredential: async (credential) => {
+        try {
+          const data = await googleLogin(credential);
+          onSuccess?.(data);
+        } catch (err) {
+          onError?.(err);
+        }
+      },
+    })
+      .then(() => {
+        if (alive) setError(null);
+      })
+      .catch(() => {
+        if (alive) setError("Google girişi şu anda yüklenemedi.");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [clientId, lang, onSuccess, onError]);
+
+  if (!clientId) return null;
 
   return (
     <div className="g-auth">
+      <div className="g-btn-slot" ref={slot} />
       <div className="g-divider"><span>veya</span></div>
-      {state.enabled && <div className="g-btn-slot" ref={slot} />}
-      {state.error && <p className="g-note">{state.error}</p>}
+      {error && <p className="g-note">{error}</p>}
     </div>
   );
 }
