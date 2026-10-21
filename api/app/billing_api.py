@@ -13,6 +13,9 @@ from app.auth import current_user, get_db
 from app.config import settings
 from app.db import AsyncSessionLocal
 from app.models import BillingEvent, CreditLedger, User
+from app.plans import plan_by_price as _plan_by_price
+from app.plans import plan_catalog as _plan_catalog
+from app.plans import plan_limits
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -35,39 +38,6 @@ def _credit_catalog() -> list[dict]:
     ]
 
 
-def _plan_catalog() -> list[dict]:
-    starter_price = settings.stripe_price_starter or settings.stripe_monthly_price_id
-    rows = [
-        {
-            "key": "free",
-            "price": 0,
-            "token_budget": 1_000_000,
-            "agents": 50,
-            "rounds": 20,
-            "price_id": "",
-        },
-        {
-            "key": "starter",
-            "price": 29,
-            "token_budget": 8_000_000,
-            "agents": 150,
-            "rounds": 40,
-            "price_id": starter_price,
-        },
-        {
-            "key": "pro",
-            "price": 99,
-            "token_budget": 25_000_000,
-            "agents": 300,
-            "rounds": 90,
-            "price_id": settings.stripe_price_pro,
-        },
-    ]
-    for row in rows:
-        row["checkout_enabled"] = bool(settings.stripe_secret_key and row["price_id"])
-    return rows
-
-
 def _credit_packs() -> list[dict]:
     rows = _credit_catalog()
     for row in rows:
@@ -77,12 +47,6 @@ def _credit_packs() -> list[dict]:
 
 def _plan(key: str) -> dict | None:
     return next((p for p in _plan_catalog() if p["key"] == key), None)
-
-
-def _plan_by_price(price_id: str | None) -> dict | None:
-    if not price_id:
-        return None
-    return next((p for p in _plan_catalog() if p["price_id"] == price_id), None)
 
 
 def _base_url() -> str:
@@ -115,11 +79,14 @@ async def plans() -> dict:
 
 @router.get("/me")
 async def billing_me(user: User = Depends(current_user)) -> dict:
+    limits = plan_limits(user.plan)
     return {
         "plan": user.plan,
         "billing_status": user.billing_status,
         "monthly_token_budget": user.monthly_token_budget,
         "monthly_token_used": user.monthly_token_used,
+        "agents_limit": limits["agents"],
+        "rounds_limit": limits["rounds"],
         "credit_balance": user.credit_balance,
         "billing_period_end": (
             user.billing_period_end.isoformat() if user.billing_period_end else None

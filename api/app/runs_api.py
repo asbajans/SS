@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import current_user, get_db
 from app.db import AsyncSessionLocal
 from app.models import Agent, Ontology, Project, Run, RunEvent, Template
+from app.plans import plan_limits
 from app.storage import get_bytes
 
 router = APIRouter(prefix="/api")
@@ -21,13 +22,25 @@ ACTIVE_STATUSES = {"pending", "ingesting", "ontology", "population", "running", 
 TERMINAL_STATUSES = {"completed", "failed", "canceled"}
 
 
-def _validate_sim_config(cfg: dict) -> str | None:
-    agents_n = cfg.get("agents_n")
-    if not isinstance(agents_n, int) or not (1 <= agents_n <= 300):
-        return "agents_n must be an integer between 1 and 300"
-    rounds = cfg.get("rounds")
-    if not isinstance(rounds, int) or not (1 <= rounds <= 120):
-        return "rounds must be an integer between 1 and 120"
+def _validate_sim_config(cfg: dict, plan: str = "free", defaults: dict | None = None) -> str | None:
+    limits = plan_limits(plan)
+    defaults = defaults or {}
+    agents_n = cfg.get("agents_n", defaults.get("agents_n", 60))
+    if not isinstance(agents_n, int) or isinstance(agents_n, bool) or not (
+        1 <= agents_n <= limits["agents"]
+    ):
+        return (
+            f"agents_n must be an integer between 1 and {limits['agents']} "
+            f"for the {limits['plan']} plan"
+        )
+    rounds = cfg.get("rounds", defaults.get("rounds", 20))
+    if not isinstance(rounds, int) or isinstance(rounds, bool) or not (
+        1 <= rounds <= limits["rounds"]
+    ):
+        return (
+            f"rounds must be an integer between 1 and {limits['rounds']} "
+            f"for the {limits['plan']} plan"
+        )
     return None
 
 
@@ -60,13 +73,14 @@ async def list_projects(user=Depends(current_user), db: AsyncSession = Depends(g
 
 @router.post("/projects", status_code=201)
 async def create_project(data: ProjectIn, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
-    invalid = _validate_sim_config(data.sim_config)
-    if invalid:
-        raise HTTPException(status_code=400, detail=invalid)
     template_key = data.template_key
     tpl = await db.get(Template, template_key)
     if tpl is None or not tpl.is_active:
         raise HTTPException(status_code=400, detail=f"unknown template: {template_key}")
+    defaults = (tpl.pack or {}).get("sim_defaults") or {}
+    invalid = _validate_sim_config(data.sim_config, user.plan, defaults)
+    if invalid:
+        raise HTTPException(status_code=400, detail=invalid)
     project = Project(
         user_id=user.id,
         name=data.name,
@@ -86,6 +100,11 @@ async def create_run(project_id: str, user=Depends(current_user), db: AsyncSessi
     ).first()
     if project is None:
         raise HTTPException(status_code=404, detail="not found")
+    tpl = await db.get(Template, project.template_key)
+    defaults = (tpl.pack or {}).get("sim_defaults") if tpl is not None else {}
+    invalid = _validate_sim_config(project.sim_config or {}, user.plan, defaults or {})
+    if invalid:
+        raise HTTPException(status_code=400, detail=invalid)
     run = Run(project_id=project.id, sim_config=project.sim_config)
     db.add(run)
     await db.commit()

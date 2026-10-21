@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from app.billing_api import _period_end, _plan_by_price, _plan_catalog
 from app.config import settings
 from app.llm_gateway.usage import credit_debit
+from app.plans import plan_limits
+from app.runs_api import _validate_sim_config
 
 
 def test_plan_catalog_shape():
@@ -39,6 +41,24 @@ def test_period_end_item_level():
     sub = {"current_period_end": 1_700_000_000, "items": {"data": []}}
     assert _period_end(sub) == datetime.fromtimestamp(1_700_000_000, UTC)
     assert _period_end({}) is None
+
+
+def test_plan_limits():
+    assert plan_limits("free")["agents"] == 80
+    assert plan_limits("starter")["agents"] == 150
+    assert plan_limits("pro")["rounds"] == 80
+    assert plan_limits("unknown")["plan"] == "free"
+
+
+def test_sim_config_respects_plan():
+    assert _validate_sim_config({"agents_n": 80, "rounds": 24}, "free") is None
+    assert _validate_sim_config({"agents_n": 81, "rounds": 24}, "free") is not None
+    assert _validate_sim_config({"agents_n": 150, "rounds": 40}, "free") is not None
+    assert _validate_sim_config({"agents_n": 150, "rounds": 40}, "starter") is None
+    assert _validate_sim_config({"agents_n": 300, "rounds": 80}, "pro") is None
+    assert _validate_sim_config({"agents_n": 301, "rounds": 80}, "pro") is not None
+    assert _validate_sim_config({}, "free", {"agents_n": 60, "rounds": 20}) is None
+    assert _validate_sim_config({}, "free", {"agents_n": 100, "rounds": 20}) is not None
 
 
 def test_credit_debit():

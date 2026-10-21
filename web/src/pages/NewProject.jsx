@@ -39,6 +39,25 @@ export default function NewProject() {
   const [custom, setCustom] = useState({ agents_n: 120, rounds: 30, platforms: 1 });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [limits, setLimits] = useState(null);
+
+  useEffect(() => {
+    api("/api/billing/me")
+      .then((m) => {
+        setLimits(m);
+        setCustom((c) => ({
+          ...c,
+          agents_n: Math.min(Number(c.agents_n), m.agents_limit ?? 300),
+          rounds: Math.min(Number(c.rounds), m.rounds_limit ?? 120),
+        }));
+        setProfile((cur) => {
+          const p = PROFILES.find((x) => x.key === cur);
+          if (!p || !m.agents_limit || !m.rounds_limit) return cur;
+          return p.agents_n > m.agents_limit || p.rounds > m.rounds_limit ? "fast" : cur;
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api("/api/templates")
@@ -119,7 +138,7 @@ export default function NewProject() {
         <>
           <div className="choice-grid">
             {PROFILES.map((p) => (
-              <button key={p.key} type="button" className={`choice${profile === p.key ? " sel" : ""}`} onClick={() => setProfile(p.key)}>
+              <button key={p.key} type="button" className={`choice${profile === p.key ? " sel" : ""}`} disabled={Boolean(limits && (p.agents_n > limits.agents_limit || p.rounds > limits.rounds_limit))} title={limits && (p.agents_n > limits.agents_limit || p.rounds > limits.rounds_limit) ? `Plan limiti: en fazla ${limits.agents_limit} ajan / ${limits.rounds_limit} tur` : undefined} onClick={() => setProfile(p.key)}>
                 <h4>{p.name}</h4><p>{p.hint}</p><span className="meta">{p.agents_n} ajan · {p.rounds} tur · {p.platforms} platform</span><span className="meta">≈ maliyet {p.cost}</span>
               </button>
             ))}
@@ -131,8 +150,8 @@ export default function NewProject() {
           {profile === "custom" && (
             <div className="card card-pad" style={{ marginTop: 14 }}>
               <div className="grid-3">
-                <div className="field"><label>Ajan sayısı</label><input className="input" type="number" min={1} max={300} value={custom.agents_n} onChange={(e) => setCustom({ ...custom, agents_n: e.target.value })} /></div>
-                <div className="field"><label>Tur sayısı</label><input className="input" type="number" min={1} max={120} value={custom.rounds} onChange={(e) => setCustom({ ...custom, rounds: e.target.value })} /></div>
+                <div className="field"><label>Ajan sayısı</label><input className="input" type="number" min={1} max={limits?.agents_limit ?? 300} value={custom.agents_n} onChange={(e) => setCustom({ ...custom, agents_n: e.target.value })} /></div>
+                <div className="field"><label>Tur sayısı</label><input className="input" type="number" min={1} max={limits?.rounds_limit ?? 120} value={custom.rounds} onChange={(e) => setCustom({ ...custom, rounds: e.target.value })} /></div>
                 <div className="field"><label>Platform</label><input className="input" type="number" min={1} max={4} value={custom.platforms} onChange={(e) => setCustom({ ...custom, platforms: e.target.value })} /></div>
               </div>
             </div>
