@@ -145,6 +145,7 @@ async def checkout(
                 allow_promotion_codes=True,
                 billing_address_collection="required",
                 tax_id_collection={"enabled": True},
+                customer_update={"name": "auto", "address": "auto"},
                 metadata=metadata,
                 subscription_data={"metadata": metadata},
             )
@@ -310,7 +311,7 @@ async def _handle_event(db: AsyncSession, event) -> None:
     obj = (event.get("data") or {}).get("object") or {}
     if event_type == "checkout.session.completed":
         await _handle_checkout_completed(db, obj)
-    elif event_type == "customer.subscription.updated":
+    elif event_type in ("customer.subscription.created", "customer.subscription.updated"):
         await _handle_subscription(db, obj)
     elif event_type == "customer.subscription.deleted":
         await _handle_subscription_deleted(db, obj)
