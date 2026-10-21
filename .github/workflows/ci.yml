@@ -39,17 +39,55 @@ jobs:
     needs: [python, web]
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Portainer stack update
+      - uses: actions/checkout@v4
+      - name: Update Portainer stack
         env:
-          WEBHOOK: ${{ vars.PORTAINER_WEBHOOK || secrets.PORTAINER_WEBHOOK }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_URL: https://cont.asb.web.tr
+          STACK_ID: 97
+          ENDPOINT_ID: 2
         run: |
-          if [ -z "$WEBHOOK" ]; then
-            echo "PORTAINER_WEBHOOK tanimli degil - deploy atlaniyor (repo Variables/Secrets'a ekleyin)"
-            exit 0
+          set -euo pipefail
+          if [ -z "$PORTAINER_API_KEY" ]; then
+            echo "PORTAINER_API_KEY tanimli degil - repo secret'ini ekleyin"
+            exit 1
           fi
-          url="$WEBHOOK"
-          case "$url" in *\?*) url="$url&pullimage=false";; *) url="$url?pullimage=false";; esac
-          code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X POST -L --max-time 60 "$url")
-          echo "HTTP $code"
-          cat /tmp/pt_resp.txt
-          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          api = f"{os.environ['PORTAINER_URL']}/api"
+          key = os.environ["PORTAINER_API_KEY"]
+          stack_id = os.environ["STACK_ID"]
+          endpoint_id = os.environ["ENDPOINT_ID"]
+
+          def call(method, path, payload=None):
+              data = json.dumps(payload).encode() if payload is not None else None
+              req = urllib.request.Request(
+                  api + path,
+                  data=data,
+                  method=method,
+                  headers={"X-API-Key": key, "Content-Type": "application/json"},
+              )
+              with urllib.request.urlopen(req, timeout=300) as resp:
+                  raw = resp.read()
+              return json.loads(raw) if raw else {}
+
+          stack = call("GET", f"/stacks/{stack_id}")
+          compose = open("docker-compose.yml", encoding="utf-8").read()
+          payload = {
+              "name": stack["Name"],
+              "env": stack.get("Env") or [],
+              "stackFileContent": compose,
+              "autoUpdate": stack.get("AutoUpdate") or {},
+              "additionalFiles": [],
+              "fromAppTemplate": False,
+              "namespace": stack.get("Namespace") or "",
+              "createdBy": stack.get("CreatedBy") or "",
+              "entrypoint": stack.get("EntryPoint") or "",
+              "projectPath": stack.get("ProjectPath") or "",
+          }
+          call("PUT", f"/stacks/{stack_id}?endpointId={endpoint_id}", payload)
+          print("stack updated:", stack_id)
+          PY
