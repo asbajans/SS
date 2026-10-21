@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import current_user, get_db
 from app.db import AsyncSessionLocal
 from app.models import Agent, Ontology, Project, Run, RunEvent, Template
-from app.plans import plan_limits
+from app.plans import free_access_expired, get_plan_limits
 from app.storage import get_bytes
 
 router = APIRouter(prefix="/api")
@@ -22,8 +22,7 @@ ACTIVE_STATUSES = {"pending", "ingesting", "ontology", "population", "running", 
 TERMINAL_STATUSES = {"completed", "failed", "canceled"}
 
 
-def _validate_sim_config(cfg: dict, plan: str = "free", defaults: dict | None = None) -> str | None:
-    limits = plan_limits(plan)
+def _validate_sim_config(cfg: dict, limits: dict, defaults: dict | None = None) -> str | None:
     defaults = defaults or {}
     agents_n = cfg.get("agents_n", defaults.get("agents_n", 60))
     if not isinstance(agents_n, int) or isinstance(agents_n, bool) or not (
@@ -71,14 +70,25 @@ async def list_projects(user=Depends(current_user), db: AsyncSession = Depends(g
     ]
 
 
+async def _plan_limits_or_402(db: AsyncSession, user) -> dict:
+    limits = await get_plan_limits(db, user.plan)
+    if user.plan == "free" and free_access_expired(user.created_at, limits["free_days"]):
+        raise HTTPException(
+            status_code=402,
+            detail="Ücretsiz dönem sona erdi; planınızı yükseltin veya kredi yükleyin",
+        )
+    return limits
+
+
 @router.post("/projects", status_code=201)
 async def create_project(data: ProjectIn, user=Depends(current_user), db: AsyncSession = Depends(get_db)):
     template_key = data.template_key
     tpl = await db.get(Template, template_key)
     if tpl is None or not tpl.is_active:
         raise HTTPException(status_code=400, detail=f"unknown template: {template_key}")
+    limits = await _plan_limits_or_402(db, user)
     defaults = (tpl.pack or {}).get("sim_defaults") or {}
-    invalid = _validate_sim_config(data.sim_config, user.plan, defaults)
+    invalid = _validate_sim_config(data.sim_config, limits, defaults)
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     project = Project(
@@ -100,9 +110,10 @@ async def create_run(project_id: str, user=Depends(current_user), db: AsyncSessi
     ).first()
     if project is None:
         raise HTTPException(status_code=404, detail="not found")
+    limits = await _plan_limits_or_402(db, user)
     tpl = await db.get(Template, project.template_key)
     defaults = (tpl.pack or {}).get("sim_defaults") if tpl is not None else {}
-    invalid = _validate_sim_config(project.sim_config or {}, user.plan, defaults or {})
+    invalid = _validate_sim_config(project.sim_config or {}, limits, defaults or {})
     if invalid:
         raise HTTPException(status_code=400, detail=invalid)
     run = Run(project_id=project.id, sim_config=project.sim_config)

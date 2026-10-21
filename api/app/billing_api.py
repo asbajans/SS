@@ -13,9 +13,15 @@ from app.auth import current_user, get_db
 from app.config import settings
 from app.db import AsyncSessionLocal
 from app.models import BillingEvent, CreditLedger, User
-from app.plans import plan_by_price as _plan_by_price
-from app.plans import plan_catalog as _plan_catalog
-from app.plans import plan_limits
+from app.plans import (
+    credit_catalog,
+    free_access_expired,
+    free_until,
+    get_plan,
+    get_plan_by_price,
+    get_plan_limits,
+    plan_catalog,
+)
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -25,28 +31,6 @@ class CheckoutIn(BaseModel):
     credit_pack: str | None = None
     success_url: str | None = None
     cancel_url: str | None = None
-
-
-def _credit_catalog() -> list[dict]:
-    return [
-        {
-            "key": "credit_5m",
-            "tokens": 5_000_000,
-            "price": 19,
-            "price_id": settings.stripe_price_credit_5m,
-        }
-    ]
-
-
-def _credit_packs() -> list[dict]:
-    rows = _credit_catalog()
-    for row in rows:
-        row["checkout_enabled"] = bool(settings.stripe_secret_key and row["price_id"])
-    return rows
-
-
-def _plan(key: str) -> dict | None:
-    return next((p for p in _plan_catalog() if p["key"] == key), None)
 
 
 def _base_url() -> str:
@@ -66,9 +50,9 @@ def _billing_enabled() -> bool:
 
 
 @router.get("/plans")
-async def plans() -> dict:
-    rows = _plan_catalog()
-    packs = _credit_packs()
+async def plans(db: AsyncSession = Depends(get_db)) -> dict:
+    rows = await plan_catalog(db)
+    packs = await credit_catalog(db)
     return {
         "plans": rows,
         "credit_packs": packs,
@@ -78,8 +62,10 @@ async def plans() -> dict:
 
 
 @router.get("/me")
-async def billing_me(user: User = Depends(current_user)) -> dict:
-    limits = plan_limits(user.plan)
+async def billing_me(
+    user: User = Depends(current_user), db: AsyncSession = Depends(get_db)
+) -> dict:
+    limits = await get_plan_limits(db, user.plan)
     return {
         "plan": user.plan,
         "billing_status": user.billing_status,
@@ -87,6 +73,16 @@ async def billing_me(user: User = Depends(current_user)) -> dict:
         "monthly_token_used": user.monthly_token_used,
         "agents_limit": limits["agents"],
         "rounds_limit": limits["rounds"],
+        "free_days": limits["free_days"],
+        "free_until": (
+            free_until(user.created_at, limits["free_days"]).isoformat()
+            if user.plan == "free" and limits["free_days"] > 0 and user.created_at
+            else None
+        ),
+        "free_expired": bool(
+            user.plan == "free"
+            and free_access_expired(user.created_at, limits["free_days"])
+        ),
         "credit_balance": user.credit_balance,
         "billing_period_end": (
             user.billing_period_end.isoformat() if user.billing_period_end else None
@@ -122,8 +118,8 @@ async def checkout(
             detail="Stripe yapılandırılmadı (STRIPE_SECRET_KEY gerekli)",
         )
     stripe.api_key = settings.stripe_secret_key
-    plan = _plan(body.plan) if body.plan and body.plan != "free" else None
-    pack = next((p for p in _credit_catalog() if p["key"] == body.credit_pack), None)
+    plan = await get_plan(db, body.plan) if body.plan and body.plan != "free" else None
+    pack = next((p for p in await credit_catalog(db) if p["key"] == body.credit_pack), None)
     if (plan is None) == (pack is None):
         raise HTTPException(status_code=400, detail="plan veya credit_pack seçin")
     if plan is not None and not plan["price_id"]:
@@ -239,7 +235,9 @@ async def _handle_checkout_completed(db: AsyncSession, session) -> None:
         if subscription is not None:
             items = ((subscription.get("items") or {}).get("data")) or []
             price_id = items[0].get("price", {}).get("id") if items else None
-        plan = _plan_by_price(price_id) or _plan(metadata.get("plan") or "")
+        plan = await get_plan_by_price(db, price_id) or await get_plan(
+            db, metadata.get("plan") or ""
+        )
         if plan is not None:
             _apply_plan(user, plan, subscription, reset_usage=True)
     elif kind == "credit":
@@ -263,7 +261,7 @@ async def _handle_subscription(db: AsyncSession, subscription) -> None:
     status = subscription.get("status")
     items = ((subscription.get("items") or {}).get("data")) or []
     price_id = items[0].get("price", {}).get("id") if items else None
-    plan = _plan_by_price(price_id)
+    plan = await get_plan_by_price(db, price_id)
     user.stripe_subscription_id = subscription.get("id")
     user.billing_period_end = _period_end(subscription)
     if status in ("active", "trialing") and plan is not None:
@@ -278,7 +276,7 @@ async def _handle_subscription_deleted(db: AsyncSession, subscription) -> None:
     user = await _user_by_customer(db, subscription.get("customer"))
     if user is None:
         return
-    free = _plan("free")
+    free = await get_plan(db, "free")
     if free is not None:
         _apply_plan(user, free)
     user.plan = "free"
@@ -295,7 +293,7 @@ async def _handle_invoice_paid(db: AsyncSession, invoice) -> None:
         return
     lines = ((invoice.get("lines") or {}).get("data")) or []
     price_id = lines[0].get("price", {}).get("id") if lines else None
-    plan = _plan_by_price(price_id)
+    plan = await get_plan_by_price(db, price_id)
     if plan is not None:
         _apply_plan(user, plan, reset_usage=True)
     else:

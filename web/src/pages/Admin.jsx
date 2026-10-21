@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 
 import { api, fmtDate } from "../api.js";
 import Icon from "../icons.jsx";
@@ -173,6 +173,7 @@ export default function Admin() {
       <div className="row">
         <button className="btn" type="button" onClick={reloadPrices}><Icon name="refresh" size={15} /> Fiyatları yenile ({orModels.length})</button>
         <button className="btn" type="button" onClick={load}><Icon name="refresh" size={15} /> Yenile</button>
+        <Link className="btn" to="/app/admin/billing"><Icon name="card" size={15} /> Ticari yönetim</Link>
         <button className="btn btn-primary" type="button" onClick={startNew}><Icon name="plus" size={15} /> Yeni görev</button>
       </div></div>
 

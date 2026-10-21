@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.llm_gateway.config_resolver import resolve_config
-from app.models import TokenUsage, User
+from app.models import PlanConfig, TokenUsage, User
+from app.plans import free_access_expired
 
 
 class QuotaExceeded(Exception):
@@ -26,6 +27,11 @@ def credit_debit(before: int, after: int, budget: int, balance: int) -> int:
     if overflow <= 0 or balance <= 0:
         return 0
     return min(overflow, balance)
+
+
+async def _free_days(db: AsyncSession) -> int:
+    value = await db.scalar(select(PlanConfig.free_days).where(PlanConfig.key == "free"))
+    return int(value or 0)
 
 
 def _reset_usage_if_needed(user: User) -> None:
@@ -69,6 +75,10 @@ async def record_usage(
             after = before + tokens
             user.monthly_token_used = after
             budget = user.monthly_token_budget or 0
+            if user.plan == "free" and free_access_expired(
+                user.created_at, await _free_days(db)
+            ):
+                budget = 0
             debit = credit_debit(before, after, budget, user.credit_balance or 0)
             if debit > 0:
                 user.credit_balance = (user.credit_balance or 0) - debit
@@ -87,9 +97,17 @@ async def assert_quota(
         user = await db.get(User, user_id)
         if user is not None:
             _reset_usage_if_needed(user)
+            expired = user.plan == "free" and free_access_expired(
+                user.created_at, await _free_days(db)
+            )
+            if expired and (user.credit_balance or 0) <= 0:
+                raise QuotaExceeded(
+                    "free period ended; upgrade your plan or buy credits"
+                )
             budget = user.monthly_token_budget
             if (
-                budget is not None
+                not expired
+                and budget is not None
                 and (user.monthly_token_used or 0) + est_prompt_tokens > budget
                 and (user.credit_balance or 0) <= 0
             ):

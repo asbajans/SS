@@ -57,6 +57,35 @@ class BillingEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class PlanConfig(Base):
+    __tablename__ = "plan_configs"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    price_cents: Mapped[int] = mapped_column(Integer, default=0)
+    token_budget: Mapped[int] = mapped_column(BigInteger, default=1_000_000)
+    agents: Mapped[int] = mapped_column(Integer, default=80)
+    rounds: Mapped[int] = mapped_column(Integer, default=24)
+    free_days: Mapped[int] = mapped_column(Integer, default=0)
+    stripe_price_id: Mapped[str] = mapped_column(String(128), default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class CreditPack(Base):
+    __tablename__ = "credit_packs"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    tokens: Mapped[int] = mapped_column(BigInteger)
+    price_cents: Mapped[int] = mapped_column(Integer)
+    stripe_price_id: Mapped[str] = mapped_column(String(128), default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class CreditLedger(Base):
     __tablename__ = "credit_ledger"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)

@@ -12,6 +12,8 @@ const COPY = {
     used: "Bu dönem kullanım",
     credits: "Kredi bakiyesi",
     resets: "Dönem sonu",
+    freeUntil: "Ücretsiz erişim bitişi",
+    freeExpired: "Ücretsiz dönem sona erdi. Devam etmek için plan yükseltin veya kredi yükleyin.",
     portal: "Faturaları yönet",
     plans: "Abonelik planları",
     packs: "Kullanım kredisi",
@@ -37,6 +39,8 @@ const COPY = {
     used: "Usage this period",
     credits: "Credit balance",
     resets: "Period ends",
+    freeUntil: "Free access ends",
+    freeExpired: "Your free period has ended. Upgrade your plan or buy credits to continue.",
     portal: "Manage invoices",
     plans: "Subscription plans",
     packs: "Usage credits",
@@ -149,6 +153,9 @@ export default function Billing() {
             {me?.billing_status && me.billing_status !== "active" && (
               <div className="badge warn no-dot">{me.billing_status}</div>
             )}
+            {me?.free_until && (
+              <div className="badge warn no-dot">{t.freeUntil}: {fmtDate(me.free_until)}</div>
+            )}
           </div>
           <div>
             <div className="stat-label"><Icon name="activity" size={14} /> {t.used}</div>
@@ -230,6 +237,7 @@ export default function Billing() {
         </>
       )}
 
+      {me?.free_expired && <div className="notice"><Icon name="bell" size={15} /><span>{t.freeExpired}</span></div>}
       {!stripeOn && <div className="notice"><Icon name="card" size={15} /><span>{t.off}</span></div>}
     </>
   );

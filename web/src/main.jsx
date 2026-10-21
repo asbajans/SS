@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "./components/AppShell.jsx";
 import App from "./App.jsx";
 import Admin from "./pages/Admin.jsx";
+import AdminBilling from "./pages/AdminBilling.jsx";
 import Billing from "./pages/Billing.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Login from "./pages/Login.jsx";
@@ -37,6 +38,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="billing" element={<Billing />} />
           <Route path="settings" element={<Settings />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="admin/billing" element={<AdminBilling />} />
         </Route>
         <Route
           path="*"
