@@ -42,29 +42,15 @@ jobs:
       - name: Trigger Portainer stack update
         env:
           WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
-          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
-          PORTAINER_URL: https://cont.asb.web.tr
-          STACK_ID: 98
-          ENDPOINT_ID: 2
         run: |
           set -euo pipefail
-          if [ -n "$WEBHOOK_URL" ]; then
-            url="$WEBHOOK_URL"
-            case "$url" in *\?*) url="$url&pullimage=false";; *) url="$url?pullimage=false";; esac
-            code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X POST -L --max-time 90 "$url")
-            echo "webhook HTTP $code"
-            [ "$code" -ge 200 ] && [ "$code" -lt 300 ] && exit 0
-            echo "webhook failed, falling back to api redeploy"
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "PORTAINER_WEBHOOK_URL tanimli degil - repo secret'ini ekleyin"
+            exit 1
           fi
-          if [ -z "$PORTAINER_API_KEY" ]; then
-            echo "PORTAINER_WEBHOOK_URL veya PORTAINER_API_KEY tanimli degil - deploy atlaniyor"
-            exit 0
-          fi
-          code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X PUT \
-            -H "X-API-Key: $PORTAINER_API_KEY" \
-            -H "User-Agent: SSDeploy/1.0" \
-            -H "Content-Type: application/json" \
-            -d '{}' \
-            "$PORTAINER_URL/api/stacks/$STACK_ID/git/redeploy?endpointId=$ENDPOINT_ID")
-          echo "api HTTP $code"
+          url="$WEBHOOK_URL"
+          case "$url" in *\?*) url="$url&pullimage=false";; *) url="$url?pullimage=false";; esac
+          code=$(curl -sS -o /tmp/pt_resp.txt -w '%{http_code}' -X POST -L --max-time 90 "$url")
+          echo "webhook HTTP $code"
+          cat /tmp/pt_resp.txt
           [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
