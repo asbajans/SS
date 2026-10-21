@@ -290,3 +290,15 @@ Deploy akışı:
 
 - 2026-10-19: Plan v1. AGPL'den temiz-oda seçildi; OpenRouter tek harici servis; lisans/konum NM bazlı ToS.
 - 2026-10-19 (rev): cloudflared stackten çıkarıldı (sunucuda zaten kurulu); port bandı 3900–3950'e taşındı.
+
+
+---
+
+## 14) Web arayuz tasarim sistemi (F10)
+
+- Tasarim dili: Lovable referans tasarimi (twinworld-social-simulator.lovable.app) temel alindi; koyu lacivert zemin, cam (glass) kartlar, cyan-pink neon vurgu, Orbitron baslik + Space Grotesk govde + JetBrains Mono etiket.
+- Dosyalar: web/src/landing.css (landing sayfasi, .lp-* siniflari), web/src/theme.css (panel/blog koyu tema tokenlari ve component override'lari), web/src/styles.css (temel primitifler).
+- Fontlar Google Fonts uzerinden: Orbitron, Space Grotesk, JetBrains Mono.
+- Marka varliklari: kok dizindeki logo.jpg, icon.jpg, icon.ico -> web/public/logo-light.png, web/public/logo.png, web/public/icon-mark.png, web/public/icon-192.png, web/public/icon.ico (beyaz arka plan saydamlastirildi). Favicon: icon.ico.
+- Landing sayfasi tek sayfadir: hem socialsimulator.com.tr hem app.socialsimulator.com.tr kok yolunda ayni SPA acilir; panel /app altindadir. Yeni host icin yeni port gerekmez: cloudflared Public Hostname olarak socialsimulator.com.tr -> http://localhost:3900 eklenir (web nginx /api isteklerini api:8000 konteynerine proxy'ler).
+- Landing istem kutusu sessionStorage.ss_prompt ile giris/kayit sonrasi /app/projects/new sayfasina proje adi + brief olarak aktarilir.

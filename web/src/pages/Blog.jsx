@@ -18,9 +18,8 @@ export default function Blog() {
   return (
     <div className="landing blog-shell">
       <nav className="landing-nav">
-        <Link className="brand" to="/" style={{ textDecoration: "none" }}>
-          <span className="brand-mark">SS</span>
-          <span className="brand-name">Social Simulation<small>{en ? "community simulation" : "topluluk simülasyonu"}</small></span>
+        <Link className="brand" to="/" aria-label="Social Simulator">
+          <img src="/logo-light.png" alt="Social Simulator" />
         </Link>
         <div className="row">
           <button className="btn btn-dark btn-sm" type="button" onClick={() => setLang(en ? "tr" : "en")}>{en ? "TR" : "EN"}</button>

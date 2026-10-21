@@ -16,7 +16,7 @@ export default function Register() {
     setBusy(true); setError(null);
     try {
       await register(email, password);
-      nav("/app");
+      nav(sessionStorage.getItem("ss_prompt") ? "/app/projects/new" : "/app");
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
@@ -24,13 +24,9 @@ export default function Register() {
   return (
     <div className="auth-wrap">
       <aside className="auth-side">
-        <div className="brand">
-          <span className="brand-mark">SS</span>
-          <span className="brand-name">
-            Social Simulation
-            <small>topluluk simülasyonu</small>
-          </span>
-        </div>
+        <Link className="brand" to="/" aria-label="Social Simulator">
+          <img src="/logo-light.png" alt="Social Simulator" />
+        </Link>
         <div className="stack" style={{ gap: 24 }}>
           <h2>Ücretsiz planla başlayın — ilk simülasyonunuzu hemen çalıştırın.</h2>
           <ul>

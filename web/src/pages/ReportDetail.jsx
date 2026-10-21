@@ -5,10 +5,10 @@ import { api, downloadReport } from "../api.js";
 import Icon from "../icons.jsx";
 
 const STANCE_META = [
-  { key: "positive", label: "Olumlu", color: "#0f9f6e", tone: "pos" },
-  { key: "negative", label: "Olumsuz", color: "#e5484d", tone: "neg" },
+  { key: "positive", label: "Olumlu", color: "#4ade80", tone: "pos" },
+  { key: "negative", label: "Olumsuz", color: "#fb7185", tone: "neg" },
   { key: "neutral", label: "Nötr", color: "#94a3b8", tone: "neu" },
-  { key: "undecided", label: "Kararsız", color: "#f59e0b", tone: "und" },
+  { key: "undecided", label: "Kararsız", color: "#fbbf24", tone: "und" },
 ];
 
 function pct(value) {
@@ -156,9 +156,9 @@ export default function ReportDetail() {
 
       <div className="stat-grid">
         <div className="card stat"><div className="stat-label">Katılımcı</div><div className="stat-value">{summary.total ?? 0}</div><div className="stat-sub">{data.audience_size ?? summary.total ?? 0} ajanlık kitleden</div></div>
-        <div className="card stat"><div className="stat-label">Olumlu görüş</div><div className="stat-value" style={{ color: "#0f9f6e" }}>{pct(summary.percentages?.positive)}</div><div className="stat-sub">{summary.positive ?? 0} katılımcı</div></div>
-        <div className="card stat"><div className="stat-label">Olumsuz görüş</div><div className="stat-value" style={{ color: "#e5484d" }}>{pct(summary.percentages?.negative)}</div><div className="stat-sub">{summary.negative ?? 0} katılımcı</div></div>
-        <div className="card stat"><div className="stat-label">Kararsız</div><div className="stat-value" style={{ color: "#b45309" }}>{pct(summary.percentages?.undecided)}</div><div className="stat-sub">{summary.undecided ?? 0} katılımcı</div></div>
+        <div className="card stat"><div className="stat-label">Olumlu görüş</div><div className="stat-value" style={{ color: "#4ade80" }}>{pct(summary.percentages?.positive)}</div><div className="stat-sub">{summary.positive ?? 0} katılımcı</div></div>
+        <div className="card stat"><div className="stat-label">Olumsuz görüş</div><div className="stat-value" style={{ color: "#fb7185" }}>{pct(summary.percentages?.negative)}</div><div className="stat-sub">{summary.negative ?? 0} katılımcı</div></div>
+        <div className="card stat"><div className="stat-label">Kararsız</div><div className="stat-value" style={{ color: "#fbbf24" }}>{pct(summary.percentages?.undecided)}</div><div className="stat-sub">{summary.undecided ?? 0} katılımcı</div></div>
       </div>
 
       <div className="grid-2">

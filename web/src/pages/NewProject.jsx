@@ -29,13 +29,14 @@ export default function NewProject() {
   const nav = useNavigate();
   const [params] = useSearchParams();
   const initialTpl = params.get("tpl");
+  const promptSeed = params.get("prompt") || sessionStorage.getItem("ss_prompt") || "";
   const hasTpl = initialTpl && TEMPLATES.some((t) => t.key === initialTpl);
   const [step, setStep] = useState(hasTpl ? 2 : 1);
   const [tpl, setTpl] = useState(hasTpl ? initialTpl : "market_research");
   const [templates, setTemplates] = useState(TEMPLATES);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(promptSeed.slice(0, 80));
   const [language, setLanguage] = useState("tr");
-  const [brief, setBrief] = useState("");
+  const [brief, setBrief] = useState(promptSeed);
   const [postText, setPostText] = useState("");
   const [audience, setAudience] = useState("");
   const [channel, setChannel] = useState("Instagram");
@@ -44,6 +45,10 @@ export default function NewProject() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [limits, setLimits] = useState(null);
+
+  useEffect(() => {
+    if (promptSeed) sessionStorage.removeItem("ss_prompt");
+  }, [promptSeed]);
 
   useEffect(() => {
     api("/api/billing/me")
@@ -135,7 +140,7 @@ export default function NewProject() {
               </select>
             </div>
             <div className="field"><label>Şablon</label>
-              <div className="input" style={{ background: "#f9fafb", display: "flex", alignItems: "center" }}>{templates.find((t) => t.key === tpl)?.name}</div>
+              <div className="input" style={{ background: "rgba(8,15,28,.82)", display: "flex", alignItems: "center" }}>{templates.find((t) => t.key === tpl)?.name}</div>
             </div>
           </div>
           <div className="field">

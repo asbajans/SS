@@ -24,6 +24,8 @@ import Runs from "./pages/Runs.jsx";
 import Settings from "./pages/Settings.jsx";
 import { getToken } from "./api.js";
 import "./styles.css";
+import "./theme.css";
+import "./landing.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

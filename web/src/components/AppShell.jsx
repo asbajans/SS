@@ -67,7 +67,9 @@ export default function AppShell() {
   return (
     <div className={`shell${open ? " nav-open" : ""}`}>
       <aside className="sidebar">
-        <div className="brand">SS</div>
+        <Link className="brand" to="/app" aria-label="Social Simulator">
+          <img src="/logo-light.png" alt="Social Simulator" />
+        </Link>
         <div className="nav-group-label">Çalışma Alanı</div>
         <nav className="nav">
           {NAV.map((n) => (
