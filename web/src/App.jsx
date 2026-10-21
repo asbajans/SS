@@ -114,6 +114,23 @@ const COPY = {
   },
 };
 
+function CountUp({ value }) {
+  const [current, setCurrent] = useState(0);
+  useEffect(() => {
+    let raf;
+    const start = performance.now();
+    const duration = 1100;
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      setCurrent(Math.round(value * (1 - (1 - progress) ** 3)));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{current}</>;
+}
+
 export default function App() {
   const [lang, setLang] = useState(() => localStorage.getItem("ss_lang") || "tr");
   const [plans, setPlans] = useState(FALLBACK_PLANS);
@@ -121,6 +138,27 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem("ss_lang", lang);
+  }, [lang]);
+
+  useEffect(() => {
+    const nodes = document.querySelectorAll(".landing .reveal");
+    if (!("IntersectionObserver" in window)) {
+      nodes.forEach((node) => node.classList.add("visible"));
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 },
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
   }, [lang]);
 
   useEffect(() => {
@@ -149,12 +187,16 @@ export default function App() {
           <button className="btn btn-dark btn-sm" type="button" onClick={() => setLang(lang === "tr" ? "en" : "tr")}>
             {lang === "tr" ? "EN" : "TR"}
           </button>
+          <Link className="btn btn-dark btn-sm" to="/blog">Blog</Link>
           <Link className="btn btn-dark btn-sm" to="/login">{t.login}</Link>
           <Link className="btn btn-primary btn-sm" to="/register">{t.start}</Link>
         </div>
       </nav>
 
       <header className="landing-hero">
+        <div className="hero-orbs" aria-hidden="true"><span /><span /><span /></div>
+        <div className="hero-float hero-float-a" aria-hidden="true">+1.284 <small>{lang === "tr" ? "ajan" : "agents"}</small></div>
+        <div className="hero-float hero-float-b" aria-hidden="true">sentiment ↑ <small>+%12</small></div>
         <span className="hero-tag"><Icon name="users" size={15} /> {t.heroTag}</span>
         <h1>
           {t.heroTitleA} <em>{t.heroTitleEm}</em> {t.heroTitleB}
@@ -169,13 +211,21 @@ export default function App() {
         </div>
         <div className="hero-stats">
           {t.stats.map(([n, label]) => (
-            <div key={label}><b>{n}</b><span>{label}</span></div>
+            <div key={label}><b>{/^\d+$/.test(n) ? <CountUp value={Number(n)} /> : n}</b><span>{label}</span></div>
           ))}
         </div>
         <div className="disclaimer-strip">{t.disclaimer}</div>
       </header>
 
-      <section className="landing-section">
+      <div className="landing-marquee" aria-hidden="true">
+        <div className="marquee-track">
+          {[...TEMPLATES, ...TEMPLATES].map((tpl, i) => (
+            <span key={`${tpl.key}-${i}`}>{lang === "en" ? (TEMPLATE_EN[tpl.key]?.[0] ?? tpl.name) : tpl.name}<i>✳</i></span>
+          ))}
+        </div>
+      </div>
+
+      <section className="landing-section reveal">
         <h2>{t.templatesTitle}</h2>
         <p className="sub">{t.templatesSub}</p>
         <div className="feature-grid">
@@ -194,7 +244,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="landing-section" style={{ paddingTop: 8 }}>
+      <section className="landing-section reveal" style={{ paddingTop: 8 }}>
         <h2>{t.stepsTitle}</h2>
         <p className="sub">{t.stepsSub}</p>
         <div className="steps-row">
@@ -208,7 +258,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="landing-section landing-pricing">
+      <section className="landing-section landing-pricing reveal">
         <h2>{t.pricingTitle}</h2>
         <p className="sub">{t.pricingSub}</p>
         <div className="grid-3">
@@ -244,6 +294,7 @@ export default function App() {
 
       <footer className="landing-foot">
         <div className="legal">
+          <Link to="/blog">Blog</Link>
           <a href="#tos">{t.tos}</a>
           <a href="#privacy">{t.privacy}</a>
           <a href="#dmca">{t.dmca}</a>

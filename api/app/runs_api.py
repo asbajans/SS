@@ -154,6 +154,9 @@ async def list_runs(user=Depends(current_user), db: AsyncSession = Depends(get_d
             "current_round": r.current_round,
             "tokens_used": r.tokens_used,
             "cost_usd": str(r.cost_usd),
+            "report_ready": bool(r.report_object_key),
+            "report_meta": r.report_meta,
+            "finished_at": r.finished_at.isoformat() if r.finished_at else None,
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r in rows

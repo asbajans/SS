@@ -235,6 +235,9 @@ Zaman/sim konfigürasyonu (`run.sim_config`): `agents_n, rounds, platforms, peak
 | **F3 — Rapor** | 8–9 | Rapor Ajanı: outline → sections → Markdown + (WeasyPrint PDF) | Kaynakça izli rapor + sim disclaimers + MinIO'dan indirilebilir |
 | **F4 — Çoklu konu + admin + GDPR** | 10–11 | Şablon UI, grafana/loki, DSR silme, backup cron | Yeni şablon yüklenip aynı pipeline çalışıyor; Silme talebi 7 gün içinde tam uygulanır |
 | **F5 — Ticari açılış** | 12–13 | Iyzico değil **Stripe** abonelik + Usage credit; landing/pricing; TR/EN UI; ölçekleme | İlk 10 ödeme tasarımının yıldız testi: kullanıcının signup→ücretli rapor indirme akışı |
+| **F6 - Rapor kütüphanesi** | 14 | Tamamlanan raporların listesi, arama, PDF/MD indirme; `report_ready` alanı | Kullanıcı tüm raporlarını tek ekranda görür, arama yapar ve PDF/MD indirir; boş durum yönlendirmesi çalışır |
+| **F7 - Pazarlama sitesi** | 15 | Public blog (TR/EN), landing animasyonları, blog navigasyonu | `/blog` ve `/blog/{slug}` yayında; landing'de blog linki, reveal animasyonları ve prefers-reduced-motion desteği |
+| **F8 - API platformu** | 16 | API anahtarları, `/api/v1` proje/run/rapor uçları, HMAC imzalı webhook'lar, geliştirici UI | Anahtar ile proje oluşturup run başlatma ve rapor indirme uçtan uca çalışır; webhook imzası doğrulanır, SSRF engellenir |
 
 Kaynak: 1 dev tam zamanlı + 1 UI/barkı → ~13 hafta; 2 dev → ~10–14 hafta.
 

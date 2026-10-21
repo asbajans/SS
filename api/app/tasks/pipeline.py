@@ -23,6 +23,7 @@ from app.models import (
 )
 from app.storage import put_bytes
 from app.template_service import load_template
+from app.webhooks import dispatch_run_event
 from engine.actions import parse_agent_action
 from engine.loop import build_agent_messages
 from engine.ontology import build_ontology_prompt, parse_ontology
@@ -70,6 +71,7 @@ async def _mark_failed(run_id: str, error: str) -> None:
         if project is not None:
             project.status = "failed"
         await s.commit()
+    await dispatch_run_event(run_id, "run.failed")
 
 
 async def _set_status(s, run_id, status: str, **extra) -> Run | None:
@@ -569,6 +571,7 @@ async def _run(run_id: str) -> dict:
                 "system",
                 {"stage": "completed", "message": "Simülasyon tamamlandı"},
             )
+            await dispatch_run_event(run_id, "run.completed")
             return {"status": "completed"}
     finally:
         await redis_client.aclose()

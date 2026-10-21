@@ -71,6 +71,45 @@ INSERT INTO credit_packs (key, tokens, price_cents, sort_order)
 VALUES ('credit_5m', 5000000, 1900, 0)
 ON CONFLICT (key) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS blog_posts (
+    slug         TEXT PRIMARY KEY,
+    title_tr     TEXT NOT NULL,
+    title_en     TEXT NOT NULL,
+    excerpt_tr   TEXT NOT NULL DEFAULT '',
+    excerpt_en   TEXT NOT NULL DEFAULT '',
+    body_tr      TEXT NOT NULL DEFAULT '',
+    body_en      TEXT NOT NULL DEFAULT '',
+    is_published BOOLEAN NOT NULL DEFAULT TRUE,
+    published_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name         TEXT NOT NULL DEFAULT 'default',
+    prefix       TEXT NOT NULL,
+    key_hash     TEXT NOT NULL UNIQUE,
+    last_used_at TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+
+CREATE TABLE IF NOT EXISTS webhooks (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    url             TEXT NOT NULL,
+    secret          TEXT NOT NULL,
+    events          JSONB NOT NULL DEFAULT '["run.completed","run.failed"]'::jsonb,
+    active          BOOLEAN NOT NULL DEFAULT TRUE,
+    last_attempt_at TIMESTAMPTZ,
+    last_status     TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_webhooks_user ON webhooks(user_id);
+
 -- ---------- model_configs (admin-managed, per-task) ----------
 CREATE TABLE IF NOT EXISTS model_configs (
     task_key        TEXT PRIMARY KEY,           -- e.g. agent_act, persona_synth...

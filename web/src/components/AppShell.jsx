@@ -9,6 +9,7 @@ const NAV = [
   { to: "/app/projects", icon: "folder", label: "Projeler" },
   { to: "/app/runs", icon: "activity", label: "Simülasyonlar" },
   { to: "/app/reports", icon: "doc", label: "Raporlar" },
+  { to: "/app/api", icon: "box", label: "API & Entegrasyon" },
 ];
 
 const NAV_BOTTOM = [
@@ -17,6 +18,7 @@ const NAV_BOTTOM = [
 ];
 
 const TITLES = [
+  ["/app/api", "API & Entegrasyon"],
   ["/app/projects/new", "Yeni Simülasyon"],
   ["/app/projects", "Projeler"],
   ["/app/runs", "Simülasyonlar"],

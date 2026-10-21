@@ -6,7 +6,10 @@ import AppShell from "./components/AppShell.jsx";
 import App from "./App.jsx";
 import Admin from "./pages/Admin.jsx";
 import AdminBilling from "./pages/AdminBilling.jsx";
+import ApiAccess from "./pages/ApiAccess.jsx";
 import Billing from "./pages/Billing.jsx";
+import Blog from "./pages/Blog.jsx";
+import BlogPostPage from "./pages/BlogPost.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -27,6 +30,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/" element={<App />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/app" element={<AppShell />}>
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
@@ -35,6 +40,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="runs" element={<Runs />} />
           <Route path="runs/:id" element={<RunDetail />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="api" element={<ApiAccess />} />
           <Route path="billing" element={<Billing />} />
           <Route path="settings" element={<Settings />} />
           <Route path="admin" element={<Admin />} />
