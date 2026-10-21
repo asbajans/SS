@@ -280,27 +280,6 @@ export default function App() {
   }, [promptIndex, t.prompts]);
 
   useEffect(() => {
-    const nodes = document.querySelectorAll(".lp-reveal");
-    if (!("IntersectionObserver" in window)) {
-      nodes.forEach((node) => node.classList.add("visible"));
-      return undefined;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 },
-    );
-    nodes.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
-  }, [lang]);
-
-  useEffect(() => {
     api("/api/billing/plans")
       .then((data) => {
         if (Array.isArray(data?.plans) && data.plans.length > 0) setPlans(data.plans);

@@ -526,8 +526,10 @@
 }
 .lp-footer-bottom span:last-child { max-width: 560px; text-align: right; }
 
-.lp-reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.lp-reveal { animation: lp-in 0.8s ease both; }
 .lp-reveal.visible { opacity: 1; transform: none; }
+
+@keyframes lp-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
 @keyframes lp-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes lp-caret { 0%, 45% { opacity: 1; } 46%, 100% { opacity: 0; } }
@@ -583,6 +585,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-network, .lp-float, .lp-node, .lp-edge, .lp-bars i, .lp-tag i, .lp-prompt::after { animation: none !important; }
-  .lp-reveal { opacity: 1; transform: none; transition: none; }
+  .lp-network, .lp-float, .lp-node, .lp-edge, .lp-bars i, .lp-tag i, .lp-prompt::after, .lp-reveal { animation: none !important; }
+  .lp-reveal { opacity: 1; transform: none; }
 }
