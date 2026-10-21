@@ -293,7 +293,7 @@ async def _act_one(
 
 async def _stage_running(s, run, project, template, redis_client, agents: list[Agent]) -> str:
     config = run.sim_config or {}
-    defaults = (template.pack or {}).get("sim_defaults") or {}
+    defaults = template.sim_defaults or {}
     rounds = int(config.get("rounds") or defaults.get("rounds", 20))
     rounds = max(1, min(rounds, settings.engine_max_rounds))
     platforms = int(config.get("platforms") or 1)
@@ -557,7 +557,7 @@ async def _run(run_id: str) -> dict:
                 return {"status": "failed"}
             template = await load_template(s, project.template_key)
             config = run.sim_config or {}
-            defaults = (template.pack or {}).get("sim_defaults") or {}
+            defaults = template.sim_defaults or {}
             agents_n = int(config.get("agents_n") or defaults.get("agents_n", 60))
             agents_n = max(1, min(agents_n, settings.engine_max_agents))
             await _set_status(s, run_id, "ingesting")
