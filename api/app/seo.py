@@ -414,3 +414,49 @@ def strip_markup(text: str) -> str:
     out = re.sub(r"[*_`>#\[\]()]", " ", out)
     out = re.sub(r"https?://\S+", " ", out)
     return re.sub(r"\s+", " ", out).strip()
+
+
+# --------------------------------------------------------------------------
+# Analytics snippet parsing (admin pastes the raw gtag tag)
+# --------------------------------------------------------------------------
+
+MEASUREMENT_ID_RE = re.compile(r"\b((?:G|GT|AW|DC|UA)-[A-Za-z0-9_-]{4,})")
+SCRIPT_SRC_RE = re.compile(r"<script[^>]*\bsrc\s*=\s*[\"']([^\"']+)[\"'][^>]*>", re.IGNORECASE)
+SCRIPT_BLOCK_RE = re.compile(r"<script[^>]*>(.*?)</script>", re.IGNORECASE | re.DOTALL)
+
+
+def extract_measurement_id(code: str) -> str:
+    """Find the GA4/GT/AW measurement id inside a pasted snippet.
+
+    Works both for a bare id ("G-ABC123") and for a full gtag.js tag.
+    """
+    if not code:
+        return ""
+    match = MEASUREMENT_ID_RE.search(code)
+    return match.group(1) if match else ""
+
+
+def is_valid_measurement_id(value: str) -> bool:
+    return bool(MEASUREMENT_ID_RE.fullmatch((value or "").strip()))
+
+
+def parse_snippet(code: str) -> list[dict]:
+    """Split a pasted <script> snippet into external and inline scripts.
+
+    Each entry is {"src": url, "inline": body}; inline bodies are executed
+    verbatim, external ones loaded with async.
+    """
+    if not code:
+        return []
+    out: list[dict] = []
+    for match in SCRIPT_SRC_RE.finditer(code):
+        out.append({"src": match.group(1).strip(), "inline": ""})
+    for match in SCRIPT_BLOCK_RE.finditer(code):
+        body = match.group(1).strip()
+        if body:
+            out.append({"src": "", "inline": body})
+    return out
+
+
+def snippet_has_inline(code: str) -> bool:
+    return any(item["inline"] for item in parse_snippet(code))

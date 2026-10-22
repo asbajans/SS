@@ -282,9 +282,10 @@ async def seo_runtime(db: AsyncSession = Depends(get_db)) -> dict:
         "bing_site_verification": row.bing_site_verification,
         "analytics": {
             "enabled": row.analytics_enabled,
-            "provider": row.analytics_provider,
+            "provider": row.analytics_provider or "gtag",
             "id": row.analytics_id,
             "domain": row.analytics_domain,
+            "code": row.analytics_code,
         },
         "ads": {
             "enabled": row.ads_enabled,

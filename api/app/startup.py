@@ -199,6 +199,7 @@ _MIGRATIONS = [
     "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS og_image VARCHAR(512) NOT NULL DEFAULT ''",
     "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS canonical_url VARCHAR(512) NOT NULL DEFAULT ''",
     "ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS noindex BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE seo_settings ADD COLUMN IF NOT EXISTS analytics_code TEXT NOT NULL DEFAULT ''",
     """INSERT INTO model_configs
        (task_key, model, fallbacks, max_tokens, temperature, rpm,
         daily_budget_tokens, cost_in_usd_per_mtok, cost_out_usd_per_mtok)

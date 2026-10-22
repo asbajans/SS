@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 
 import { api } from "../api.js";
+import { detectMeasurementId } from "../seo.js";
 import Icon from "../icons.jsx";
 
 const EMPTY = {
@@ -22,9 +23,10 @@ const EMPTY = {
   indexnow_key: "",
   indexnow_endpoint: "https://api.indexnow.org/indexnow",
   analytics_enabled: false,
-  analytics_provider: "ga4",
+  analytics_provider: "gtag",
   analytics_id: "",
   analytics_domain: "",
+  analytics_code: "",
   ads_enabled: false,
   adsense_client: "",
   adsense_slot: "",
@@ -97,11 +99,17 @@ export default function AdminSeo() {
   const [busy, setBusy] = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const detectedId = detectMeasurementId(form.analytics_code);
 
   const load = useCallback(async () => {
     try {
       const data = await api("/api/admin/seo");
-      setForm({ ...EMPTY, ...data.settings });
+      const provider = data.settings.analytics_provider;
+      setForm({
+        ...EMPTY,
+        ...data.settings,
+        analytics_provider: provider === "ga4" ? "gtag" : (provider || "gtag"),
+      });
       setPages(data.pages ?? []);
       setStaticPages(data.static_pages ?? []);
       setPosts(data.posts ?? []);
@@ -500,18 +508,62 @@ export default function AdminSeo() {
         <div className="grid-2">
           <Field label="Analytics sağlayıcısı">
             <select className="select" value={form.analytics_provider} onChange={(e) => set("analytics_provider", e.target.value)}>
-              <option value="ga4">Google Analytics 4</option>
+              <option value="gtag">Google Analytics 4 (gtag.js)</option>
               <option value="plausible">Plausible</option>
+              <option value="custom">Özel kod (aşağıdaki kutu)</option>
             </select>
           </Field>
-          <Field label="Analytics kimliği" hint={form.analytics_provider === "plausible" ? "Alan adı (örn: app.example.com)" : "G-XXXXXXXXXX"}>
-            <Text value={form.analytics_id} onChange={(v) => set("analytics_id", v)} />
-          </Field>
-          {form.analytics_provider === "plausible" && (
-            <Field label="Plausible domain">
+          {form.analytics_provider === "plausible" ? (
+            <Field label="Plausible domain" hint="Örn: app.socialsimulator.com.tr">
               <Text value={form.analytics_domain} onChange={(v) => set("analytics_domain", v)} />
             </Field>
+          ) : (
+            <Field
+              label="Ölçüm kimliği (measurement ID)"
+              hint={
+                detectedId
+                  ? `Yapıştırılan koddan algılandı: ${detectedId}`
+                  : "G-XXXXXXXXXX biçiminde. Kod yapıştırılırsa otomatik doldurulur."
+              }
+            >
+              <Text value={form.analytics_id} onChange={(v) => set("analytics_id", v)} placeholder="G-S9Z3Y1VYP5" />
+            </Field>
           )}
+        </div>
+
+        <Field
+          label="Analytics kodu (gtag etiketi)"
+          hint="Google veya Plausible'ın verdiği kodu olduğu gibi buraya yapıştırın. <script> etiketi dahil tamamını kabul eder; measurement ID otomatik algılanır."
+        >
+          <Area
+            value={form.analytics_code}
+            onChange={(v) => {
+              set("analytics_code", v);
+              const found = detectMeasurementId(v);
+              if (found) {
+                set("analytics_id", found);
+                if (form.analytics_provider !== "plausible") set("analytics_provider", "gtag");
+              }
+            }}
+            rows={7}
+            placeholder={'<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag(\'js\', new Date());\n  gtag(\'config\', \'G-XXXXXXXXXX\');\n</script>'}
+          />
+        </Field>
+
+        {form.analytics_code && !detectedId && !form.analytics_domain && (
+          <p className="notice" style={{ marginTop: 4 }}>
+            Yapıştırılan koddan bir measurement ID algılanamadı. Kod yalnızca <code>G-...</code> biçiminde
+            bir kimlikse, yukarıdaki alana elle yazın.
+          </p>
+        )}
+
+        <div className="row" style={{ marginTop: 10 }}>
+          <Check checked={form.analytics_enabled} onChange={(v) => set("analytics_enabled", v)} label="Analytics aktif" />
+          <Check checked={form.ads_enabled} onChange={(v) => set("ads_enabled", v)} label="Reklamlar aktif" />
+        </div>
+
+        <h4 style={{ margin: "20px 0 8px", fontSize: 14 }}>Reklam ağı (AdSense)</h4>
+        <div className="grid-2">
           <Field label="AdSense yayıncı kimliği" hint="ca-pub-XXXXXXXXXXXXXXXX">
             <Text value={form.adsense_client} onChange={(v) => set("adsense_client", v)} />
           </Field>
@@ -521,10 +573,6 @@ export default function AdminSeo() {
           <Field label="AdSense slot (ikincil)">
             <Text value={form.adsense_slot_secondary} onChange={(v) => set("adsense_slot_secondary", v)} />
           </Field>
-        </div>
-        <div className="row" style={{ marginTop: 10 }}>
-          <Check checked={form.analytics_enabled} onChange={(v) => set("analytics_enabled", v)} label="Analytics aktif" />
-          <Check checked={form.ads_enabled} onChange={(v) => set("ads_enabled", v)} label="Reklamlar aktif" />
         </div>
       </div>
 

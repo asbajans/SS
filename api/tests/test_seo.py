@@ -6,10 +6,13 @@ from app.seo import (
     SimilarityIndex,
     abs_url,
     article_jsonld,
+    extract_measurement_id,
     is_indexable,
+    is_valid_measurement_id,
     keyword_density,
     llms_txt,
     normalize_base_url,
+    parse_snippet,
     robots_txt,
     rss_xml,
     sitemap_index_xml,
@@ -156,3 +159,44 @@ def test_strip_markup_removes_syntax():
     assert "##" not in out
     assert "**" not in out
     assert "Başlık" in out
+
+
+GTAG_SNIPPET = """<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S9Z3Y1VYP5"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S9Z3Y1VYP5');
+</script>"""
+
+
+def test_extract_measurement_id_from_snippet():
+    assert extract_measurement_id(GTAG_SNIPPET) == "G-S9Z3Y1VYP5"
+    assert extract_measurement_id("G-ABC12345") == "G-ABC12345"
+    assert extract_measurement_id("GT-1234ABCD") == "GT-1234ABCD"
+    assert extract_measurement_id("UA-12345-1") == "UA-12345-1"
+    assert extract_measurement_id("") == ""
+    assert extract_measurement_id("plausible script") == ""
+
+
+def test_is_valid_measurement_id():
+    assert is_valid_measurement_id("G-S9Z3Y1VYP5")
+    assert not is_valid_measurement_id("S9Z3Y1VYP5")
+    assert not is_valid_measurement_id("https://www.googletagmanager.com/gtag/js?id=G-1")
+
+
+def test_parse_snippet_splits_external_and_inline():
+    parts = parse_snippet(GTAG_SNIPPET)
+    srcs = [p["src"] for p in parts if p["src"]]
+    inlines = [p["inline"] for p in parts if p["inline"]]
+    assert srcs == ["https://www.googletagmanager.com/gtag/js?id=G-S9Z3Y1VYP5"]
+    assert len(inlines) == 1
+    assert "gtag('config', 'G-S9Z3Y1VYP5')" in inlines[0]
+    assert "window.dataLayer" in inlines[0]
+
+
+def test_parse_snippet_empty():
+    assert parse_snippet("") == []
+    assert parse_snippet("G-ABC12345") == []

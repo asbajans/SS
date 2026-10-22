@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS seo_settings (
     analytics_provider      TEXT NOT NULL DEFAULT 'ga4',
     analytics_id            TEXT NOT NULL DEFAULT '',
     analytics_domain        TEXT NOT NULL DEFAULT '',
+    analytics_code          TEXT NOT NULL DEFAULT '',
     ads_enabled             BOOLEAN NOT NULL DEFAULT FALSE,
     adsense_client          TEXT NOT NULL DEFAULT '',
     adsense_slot            TEXT NOT NULL DEFAULT '',

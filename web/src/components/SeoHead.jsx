@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { applySeo, getRuntime, hydrateSiteDefaults } from "../seo.js";
+import { applySeo, getRuntime, hydrateSiteDefaults, injectSnippet, isPlainId } from "../seo.js";
+
+let injectedKey = null;
 
 /**
  * Applies title / description / Open Graph / JSON-LD metadata for the page.
@@ -66,14 +68,23 @@ export function AnalyticsLoader() {
     if (!rt) return;
     const { analytics, ads } = rt;
 
-    if (analytics?.enabled && analytics.id) {
-      if (analytics.provider === "plausible") {
+    if (analytics?.enabled) {
+      const provider = analytics.provider || "gtag";
+      const code = analytics.code || "";
+      const key = `${provider}|${analytics.id || ""}|${code}`;
+      if (injectedKey === key) return;
+      injectedKey = key;
+
+      if (code && !isPlainId(code)) {
+        // verbatim snippet pasted by the admin (gtag.js tag etc.)
+        injectSnippet(code);
+      } else if (provider === "plausible") {
         const script = document.createElement("script");
         script.defer = true;
         script.dataset.domain = analytics.domain || analytics.id;
         script.src = "https://plausible.io/js/script.js";
         document.head.appendChild(script);
-      } else {
+      } else if (analytics.id) {
         const gtag = document.createElement("script");
         gtag.async = true;
         gtag.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(analytics.id)}`;

@@ -17,6 +17,7 @@ from app.seo import (
     STATIC_PAGES,
     SimilarityIndex,
     abs_url,
+    extract_measurement_id,
     keyword_density,
     normalize_base_url,
     strip_markup,
@@ -56,9 +57,10 @@ class SettingsIn(BaseModel):
     indexnow_endpoint: str = Field(default="https://api.indexnow.org/indexnow", max_length=256)
 
     analytics_enabled: bool = False
-    analytics_provider: str = Field(default="ga4", max_length=32)
+    analytics_provider: str = Field(default="gtag", max_length=32)
     analytics_id: str = Field(default="", max_length=128)
     analytics_domain: str = Field(default="", max_length=160)
+    analytics_code: str = Field(default="", max_length=20000)
 
     ads_enabled: bool = False
     adsense_client: str = Field(default="", max_length=64)
@@ -116,6 +118,7 @@ async def _row(db: AsyncSession) -> SeoSettings:
 
 
 def _settings_payload(row: SeoSettings) -> dict:
+    detected = extract_measurement_id(row.analytics_code)
     return {
         "site_name": row.site_name,
         "site_url": row.site_url,
@@ -138,6 +141,8 @@ def _settings_payload(row: SeoSettings) -> dict:
         "analytics_provider": row.analytics_provider,
         "analytics_id": row.analytics_id,
         "analytics_domain": row.analytics_domain,
+        "analytics_code": row.analytics_code,
+        "analytics_detected_id": detected,
         "ads_enabled": row.ads_enabled,
         "adsense_client": row.adsense_client,
         "adsense_slot": row.adsense_slot,
@@ -201,7 +206,20 @@ async def get_settings(db: AsyncSession = Depends(get_db)) -> dict:
 @router.put("", dependencies=[Depends(admin_only)])
 async def put_settings(payload: SettingsIn, db: AsyncSession = Depends(get_db)) -> dict:
     row = await _row(db)
-    for field, value in payload.model_dump().items():
+    data = payload.model_dump()
+
+    # The pasted snippet is the source of truth: derive the measurement id
+    # from it so a pasted <script> tag never ends up inside a URL.
+    detected = extract_measurement_id(data.get("analytics_code") or "")
+    if detected:
+        data["analytics_id"] = detected
+    provider = (data.get("analytics_provider") or "").lower()
+    if provider == "ga4":
+        data["analytics_provider"] = "gtag"
+    if data.get("analytics_code") and provider in ("", "custom"):
+        data["analytics_provider"] = "gtag"
+
+    for field, value in data.items():
         setattr(row, field, value)
     await db.commit()
     await db.refresh(row)

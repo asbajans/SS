@@ -362,7 +362,7 @@ oindex.
 2. Varsayilan meta aciklamalari (TR/EN) ve OG gorseli doldurun (1200x630 onerilir).
 3. IndexNow: **Anahtar uret** ile bir anahtar olusturun; anahtar /{key}.txt olarak sunulur. **IndexNow aktif** isaretleyin ve "Tum sayfalari gonder" ile test edin.
 4. Google/Bing dogrulama kodlarini ilgili alanlara yapistirin; sayfa acilirken <meta name="google-site-verification"> olarak otomatik eklenir.
-5. Analytics: saglayici secin (GA4 / Plausible) ve kimligi girin. Ads: ca-pub-... yayinci kimligi ve slot id'lerini girin. Bu ayarlar **rebuild gerektirmez**, /api/seo/runtime uzerinden calisma zamaninda enjekte edilir.
+5. Analytics: **Analytics kodu (gtag etiketi)** alanina Google'in verdigi <script> blogunu **oldugu gibi** yapistirin. Backend measurement ID'yi koddan otomatik cikarir (extract_measurement_id) ve frontend injectSnippet() ile <script src> + inline govdeyi ayri ayri enjekte eder; boylece gtag/js?id=<snippet> -> 'bulunamadi' hatasina dusulmez. Yalnizca ID girilecekse G-XXXXXXXXXX formatinda tek basina yazin. Plausible icin provider secilip domain girilir. Ads: ca-pub-... yayinci kimligi ve slot id'lerini girin. Bu ayarlar **rebuild gerektirmez**, /api/seo/runtime uzerinden calisma zamaninda enjekte edilir.
 
 ### 18.3 AI bot politikasi
 

@@ -297,6 +297,7 @@ class SeoSettings(Base):
     analytics_provider: Mapped[str] = mapped_column(String(32), default="ga4")
     analytics_id: Mapped[str] = mapped_column(String(128), default="")
     analytics_domain: Mapped[str] = mapped_column(String(160), default="")
+    analytics_code: Mapped[str] = mapped_column(Text, default="")
 
     # ads
     ads_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
