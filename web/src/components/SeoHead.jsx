@@ -69,6 +69,8 @@ export function AnalyticsLoader() {
     const { analytics, ads } = rt;
 
     document.documentElement.dataset.analytics = analytics?.enabled ? "on" : "off";
+    document.documentElement.dataset.analyticsServer =
+      analytics?.enabled && analytics?.server_side ? "on" : "off";
 
     if (analytics?.enabled) {
       const provider = analytics.provider || "gtag";

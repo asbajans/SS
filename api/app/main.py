@@ -19,6 +19,7 @@ from app.blog_admin_api import router as blog_admin_router
 from app.blog_api import router as blog_router
 from app.config import settings
 from app.documents_api import router as documents_router
+from app.google_api import router as google_router
 from app.health import router as health_router
 from app.llm_gateway.router import router as llm_router
 from app.privacy_api import router as privacy_router
@@ -75,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(seo_router)
     app.include_router(seo_admin_router)
     app.include_router(analytics_router)
+    app.include_router(google_router)
     app.include_router(platform_router)
     Instrumentator(excluded_handlers=["/metrics"]).instrument(app)
     return app

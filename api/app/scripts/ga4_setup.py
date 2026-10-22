@@ -25,33 +25,14 @@ import argparse
 import os
 import sys
 
-# --------------------------------------------------------------------------
-# Olay sozlesmesi
-# --------------------------------------------------------------------------
+from app.analytics import CUSTOM_DIMENSIONS, EVENT_DEFINITIONS, KEY_EVENTS
 
-# (event_name, description, is_key_event)
-EVENT_DEFINITIONS: list[tuple[str, str, bool]] = [
-    ("sign_up", "Yeni hesap olusturuldu (google/epoosta ayrimli)", True),
-    ("login", "Giris yapildi", False),
-    ("checkout_start", "Odeme sayfasi acildi", False),
-    ("purchase", "Odeme tamamlandi (paket satin alindi)", True),
-    ("subscription_renew", "Periyodik abonelik yenilemesi", True),
-    ("plan_change", "Plan degisikligi (yukseltme/indirim)", False),
-]
-
-# (param_name, scope, description)
-CUSTOM_DIMENSIONS: list[tuple[str, str, str]] = [
-    ("signup_method", "EVENT", "Uyelik yontemi: google | email"),
-    ("method", "EVENT", "GA4 standart uyelik yontemi (google|email)"),
-    ("plan", "EVENT", "Satin alinan/aktif plan"),
-    ("item_type", "EVENT", "subscription | credit_pack"),
-    ("payment_type", "EVENT", "subscription | one_time"),
-    ("item_name", "EVENT", "Urun adi (plan_starter, credit_5000000 ...)"),
-    ("transaction_id", "EVENT", "Odeme islem kimligi (Stripe session id)"),
-]
+# --------------------------------------------------------------------------
+# Olay sozlesmesi app/analytics.py icinde tanimlidir; burada tekrar sunulur.
+# --------------------------------------------------------------------------
 
 # GA4'da olusturulacak "key event" (donusum) listesi
-KEY_EVENTS = [name for name, _, is_key in EVENT_DEFINITIONS if is_key]
+__all__ = ["EVENT_DEFINITIONS", "CUSTOM_DIMENSIONS", "KEY_EVENTS", "main"]
 
 
 # --------------------------------------------------------------------------
@@ -140,7 +121,7 @@ def main() -> int:
         for name, desc, is_key in EVENT_DEFINITIONS:
             print(f"  {'*' if is_key else ' '} {name:24} {desc}")
         print("\nCustom dimensions (EVENT scope):")
-        for name, _scope, desc in CUSTOM_DIMENSIONS:
+        for name, desc in CUSTOM_DIMENSIONS:
             print(f"    {name:18} {desc}")
         return 0
 
@@ -148,7 +129,7 @@ def main() -> int:
         sys.exit("--property zorunlu")
     token = _token_from_env()
     existing_dims = {d.get("displayName") for d in list_custom_dimensions(args.property, token)}
-    for name, _scope, desc in CUSTOM_DIMENSIONS:
+    for name, desc in CUSTOM_DIMENSIONS:
         if name in existing_dims:
             print(f"= {name} zaten var")
             continue

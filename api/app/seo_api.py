@@ -286,6 +286,7 @@ async def seo_runtime(db: AsyncSession = Depends(get_db)) -> dict:
             "id": row.analytics_id,
             "domain": row.analytics_domain,
             "code": row.analytics_code,
+            "server_side": bool(row.ga4_api_secret) and bool(row.ga4_server_side),
         },
         "ads": {
             "enabled": row.ads_enabled,

@@ -141,6 +141,9 @@ CREATE TABLE IF NOT EXISTS seo_settings (
     analytics_id            TEXT NOT NULL DEFAULT '',
     analytics_domain        TEXT NOT NULL DEFAULT '',
     analytics_code          TEXT NOT NULL DEFAULT '',
+    ga4_api_secret          VARCHAR(128) NOT NULL DEFAULT '',
+    ga4_property_id         VARCHAR(32) NOT NULL DEFAULT '',
+    ga4_server_side         BOOLEAN NOT NULL DEFAULT TRUE,
     ads_enabled             BOOLEAN NOT NULL DEFAULT FALSE,
     adsense_client          TEXT NOT NULL DEFAULT '',
     adsense_slot            TEXT NOT NULL DEFAULT '',
@@ -185,6 +188,21 @@ CREATE TABLE IF NOT EXISTS analytics_events (
 );
 CREATE INDEX IF NOT EXISTS idx_analytics_events_user ON analytics_events(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_name ON analytics_events(name, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS google_integrations (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider      VARCHAR(32) NOT NULL UNIQUE,
+    enabled       BOOLEAN NOT NULL DEFAULT FALSE,
+    client_id     TEXT NOT NULL DEFAULT '',
+    client_secret TEXT NOT NULL DEFAULT '',
+    refresh_token TEXT NOT NULL DEFAULT '',
+    config        JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status        VARCHAR(32) NOT NULL DEFAULT 'not_configured',
+    last_sync_at  TIMESTAMPTZ,
+    last_error    TEXT NOT NULL DEFAULT '',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS api_keys (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

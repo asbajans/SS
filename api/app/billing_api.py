@@ -16,6 +16,7 @@ from app.analytics import (
     PLAN_CHANGE,
     PURCHASE,
     SUBSCRIPTION_RENEW,
+    dispatch_pending,
     purchase_params,
     record,
 )
@@ -457,7 +458,9 @@ async def stripe_webhook(request: Request) -> dict:
             await _handle_event(db, event)
             db.add(BillingEvent(stripe_event_id=event["id"], type=event["type"]))
             await db.commit()
-        except Exception as exc:
+            await dispatch_pending(db)
+        except Exception as exc:  # noqa: BLE001
             await db.rollback()
             raise HTTPException(status_code=500, detail="webhook işlenemedi") from exc
+
     return {"received": True}

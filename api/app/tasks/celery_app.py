@@ -20,9 +20,11 @@ celery_app.conf.update(
     beat_schedule={
         "blog-tick": {"task": "blog.tick", "schedule": 300.0},
         "seo-indexnow": {"task": "seo.indexnow", "schedule": 3600.0},
+        "analytics-dispatch": {"task": "analytics.dispatch", "schedule": 60.0},
     },
 )
 
+import app.tasks.analytics  # noqa: E402,F401  (registers "analytics.dispatch")
 import app.tasks.blog  # noqa: E402,F401  (registers "blog.tick" / "blog.generate_topic")
 import app.tasks.ingest  # noqa: E402,F401  (registers "ingest.document")
 import app.tasks.pipeline  # noqa: E402,F401  (registers shared_task "pipeline.run")

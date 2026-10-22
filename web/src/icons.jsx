@@ -20,6 +20,7 @@ const PATHS = {
   arrowLeft: "M15 6l-6 6 6 6",
   eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   refresh: "M20 11a8 8 0 1 0-2 6M20 5v6h-6",
+  globe: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3.6 9h16.8M3.6 15h16.8M12 3c2.5 2.6 3.8 5.7 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z",
 };
 
 export default function Icon({ name, size = 18, className = "", style }) {

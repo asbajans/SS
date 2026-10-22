@@ -7,6 +7,7 @@ import App from "./App.jsx";
 import Admin from "./pages/Admin.jsx";
 import AdminBilling from "./pages/AdminBilling.jsx";
 import AdminBlog from "./pages/AdminBlog.jsx";
+import AdminGoogle from "./pages/AdminGoogle.jsx";
 import AdminSeo from "./pages/AdminSeo.jsx";
 import ApiAccess from "./pages/ApiAccess.jsx";
 import Billing from "./pages/Billing.jsx";
@@ -59,6 +60,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="admin/billing" element={<AdminBilling />} />
           <Route path="admin/blog" element={<AdminBlog />} />
           <Route path="admin/seo" element={<AdminSeo />} />
+          <Route path="admin/google" element={<AdminGoogle />} />
         </Route>
         <Route
           path="*"

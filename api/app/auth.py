@@ -8,7 +8,15 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.analytics import LOGIN, METHOD_EMAIL, METHOD_GOOGLE, SIGN_UP, record, signup_params
+from app.analytics import (
+    LOGIN,
+    METHOD_EMAIL,
+    METHOD_GOOGLE,
+    SIGN_UP,
+    dispatch_pending,
+    record,
+    signup_params,
+)
 from app.db import AsyncSessionLocal
 from app.google_auth import (
     GoogleAuthError,
@@ -73,6 +81,7 @@ async def register(data: RegisterIn, db: AsyncSession = Depends(get_db)) -> dict
         params=signup_params(METHOD_EMAIL, user.plan or "free"),
     )
     await db.commit()
+    await dispatch_pending(db)
     return {
         "id": user.id,
         "email": user.email,
@@ -94,6 +103,7 @@ async def login(data: LoginIn, db: AsyncSession = Depends(get_db)) -> dict:
         params=signup_params(METHOD_EMAIL, user.plan or "free"),
     )
     await db.commit()
+    await dispatch_pending(db)
     return {"id": user.id, "email": user.email, "is_admin": user.is_admin,
             "signup_method": METHOD_EMAIL,
             "token": make_token(str(user.id), user.is_admin)}
@@ -147,6 +157,7 @@ async def google_login(data: GoogleLoginIn, db: AsyncSession = Depends(get_db)) 
         )
     await db.commit()
     await db.refresh(user)
+    await dispatch_pending(db)
     return {
         "id": user.id,
         "email": user.email,

@@ -420,3 +420,56 @@ Jetonu https://accounts.google.com/o/oauth2/auth?client_id=...&scope=https://www
 1. Panel > Yonetim > SEO & Pazarlama > "Analytics olaylari" tablosunda yeni kayitlar gorunur ("bekliyor" -> "iletildi").
 2. GA4 > Hata Ayiklama (DebugView) > "Analytics > URL'ye ekle" ile siteyi acinca olaylar anlik gorunur.
 3. Google Ads > Hedefler > Yeni hedef olusturma: tip "Web sitesi ziyaretleri" (Web page visits), olay sign_up ve purchase, deger purchase icin alue (USD).
+---
+
+## 20) Google API entegrasyonlari (F11)
+
+### 20.1 Neden sunucu tarafli
+
+Tarayici tabanli gtag.js olcumleri reklam engelleyicileri, CSP ve consent modu yuzunden kaybolur (DebugView bos kalir). Bu surumde **olaylar sunucudan GA4 Measurement Protocol ile gonderilir**:
+
+- pi/app/ga4.py -> send_event() / send_batch() (https://www.google-analytics.com/mp/collect)
+- Gerekli: **measurement ID** (G-XXXXXXXXXX) + **API secret** (GA4 > Yonetici > Mulk Ayarlari > Veri Akislari > Web > "API secret uret")
+- client_id = sha256(user_id) on ekli (ss.<hash>) — pseudonymous ve kalici
+- sign_up, login, purchase, subscription_renew, plan_change, checkout_start **sunucudan** gider; tarayici bunlari gondermez (cift sayim olmaz). nalytics.js icindeki SERVER_OWNED_EVENTS listesi bunu garanti eder.
+- Gonderim: olay aninda (uth.py, illing_api.py) + 60 saniyede bir Celery task'i (nalytics.dispatch) ile emniyet agi.
+
+### 20.2 Entegrasyonlar (OAuth2)
+
+pi/app/google.py -> refresh-token akisi (access token otomatik yenilenir, bellekte cache).
+pi/app/google_api.py -> yonetim uclari (/api/admin/google/...).
+
+| Provider | Kapsam | Yapilan |
+|---|---|---|
+| ga4 | analytics.edit / readonly / manage | Custom dimension + key event **otomatik olusturur**; Data API ile trafik, donusum ve ciro raporu ceker; MP test olayi gonderir |
+| search_console | webmasters | Sitemap gonderir (PUT /sitemaps), arama performansi (tiklama/gosterim/CTR/pozisyon) raporu |
+| google_ads | adwords | Dönusum (conversion) islemi olusturur, kampanya harcamasini raporlar |
+| 	ag_manager | tagmanager.edit / manage | Container'a GA4 config tag'i + Pageview trigger ekler, container versiyonunu yayinlar |
+
+Admin paneli: **Yonetim > Google Entegrasyonlari** (/app/admin/google).
+
+### 20.3 OAuth token alma
+
+`
+cd api
+# 1) authorize URL
+python -m app.scripts.google_token --provider ga4 --client-id <CLIENT_ID>
+# 2) tarayicida yetkilendir, kodu kopyala
+# 3) refresh token
+python -m app.scripts.google_token --provider ga4 --client-id <CLIENT_ID> \
+    --client-secret <CLIENT_SECRET> --code 4/0AY...
+`
+Refresh token'i admin panelindeki ilgili saglayici kutusuna yapistirin.
+
+### 20.4 GA4 Data API raporlari
+
+- GET /api/admin/google/ga4/report?days=30 -> aktif kullanici, yeni kullanici, oturum, sayfa goruntuleme, donusum, ciro + olay bazli dagilim
+- Metrikler: ctiveUsers, 
+ewUsers, sessions, screenPageViews, keyEvents, 	otalRevenue
+- keyEvents metrigi GA4'da donusum olarak isaretlenen olaylari sayar.
+
+### 20.5 Notlar
+
+- Tarayici gtag etiketi hala calisir ama **opsiyoneldir**; sunucu modu acikken tarayici yalnizca etkilesim olaylarini gonderir.
+- API secret tutulacak bir sirdir; panelde yalnizca "var/yok" gosterilir, ga4_api_secret sutunu DB'de saklanir.
+- Google Ads conversion_action olusturma category=PAGE_VIEW ile calisir; GA4 tarafiyla baglamak icin Ads conversion import (offline) ayrica yapilmalidir.

@@ -4,9 +4,25 @@ import { api } from "./api.js";
 
 const NAME_RE = /[^a-z0-9_]+/g;
 
+// Events that the backend delivers through the GA4 Measurement Protocol.
+// Sending them from the browser as well would double count them.
+export const SERVER_OWNED_EVENTS = [
+  "sign_up",
+  "login",
+  "purchase",
+  "subscription_renew",
+  "plan_change",
+  "checkout_start",
+];
+
 /** True when analytics is enabled in the admin panel. */
 export function analyticsEnabled() {
   return document.documentElement.dataset.analytics === "on";
+}
+
+/** True when the backend delivers conversions server-side (preferred). */
+export function serverSideEnabled() {
+  return document.documentElement.dataset.analyticsServer === "on";
 }
 
 /** Normalize an event name to GA4 snake_case. */
@@ -22,6 +38,8 @@ export function normalizeName(name) {
 export function trackEvent(name, params = {}) {
   const eventName = normalizeName(name);
   if (!eventName) return false;
+  // Backend-owned conversions are sent by the server (Measurement Protocol).
+  if (serverSideEnabled() && SERVER_OWNED_EVENTS.includes(eventName)) return false;
   const payload = { ...params };
   try {
     window.dataLayer = window.dataLayer || [];
@@ -42,6 +60,8 @@ export function trackEvent(name, params = {}) {
  */
 export async function flushServerEvents() {
   if (!analyticsEnabled()) return 0;
+  // Server-side delivery is already handled by the backend.
+  if (serverSideEnabled()) return 0;
   try {
     const { events } = await api("/api/analytics/events");
     if (!events || events.length === 0) return 0;

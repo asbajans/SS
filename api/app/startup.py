@@ -213,6 +213,23 @@ _MIGRATIONS = [
     )""",
     "CREATE INDEX IF NOT EXISTS idx_analytics_events_user ON analytics_events(user_id, created_at DESC)",
     "CREATE INDEX IF NOT EXISTS idx_analytics_events_name ON analytics_events(name, created_at DESC)",
+    "ALTER TABLE seo_settings ADD COLUMN IF NOT EXISTS ga4_api_secret VARCHAR(128) NOT NULL DEFAULT ''",
+    "ALTER TABLE seo_settings ADD COLUMN IF NOT EXISTS ga4_property_id VARCHAR(32) NOT NULL DEFAULT ''",
+    "ALTER TABLE seo_settings ADD COLUMN IF NOT EXISTS ga4_server_side BOOLEAN NOT NULL DEFAULT TRUE",
+    """CREATE TABLE IF NOT EXISTS google_integrations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        provider VARCHAR(32) NOT NULL UNIQUE,
+        enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        client_id TEXT NOT NULL DEFAULT '',
+        client_secret TEXT NOT NULL DEFAULT '',
+        refresh_token TEXT NOT NULL DEFAULT '',
+        config JSONB NOT NULL DEFAULT '{}'::jsonb,
+        status VARCHAR(32) NOT NULL DEFAULT 'not_configured',
+        last_sync_at TIMESTAMPTZ,
+        last_error TEXT NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )""",
     """INSERT INTO model_configs
        (task_key, model, fallbacks, max_tokens, temperature, rpm,
         daily_budget_tokens, cost_in_usd_per_mtok, cost_out_usd_per_mtok)

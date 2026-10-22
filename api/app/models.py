@@ -298,6 +298,9 @@ class SeoSettings(Base):
     analytics_id: Mapped[str] = mapped_column(String(128), default="")
     analytics_domain: Mapped[str] = mapped_column(String(160), default="")
     analytics_code: Mapped[str] = mapped_column(Text, default="")
+    ga4_api_secret: Mapped[str] = mapped_column(String(128), default="")
+    ga4_property_id: Mapped[str] = mapped_column(String(32), default="")
+    ga4_server_side: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # ads
     ads_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -340,6 +343,28 @@ class SeoSubmission(Base):
     detail: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class GoogleIntegration(Base):
+    """OAuth credentials + config for one Google service."""
+
+    __tablename__ = "google_integrations"
+    id: Mapped[uuid.UUID] = uid()
+    provider: Mapped[str] = mapped_column(String(32), unique=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    client_id: Mapped[str] = mapped_column(Text, default="")
+    client_secret: Mapped[str] = mapped_column(Text, default="")
+    refresh_token: Mapped[str] = mapped_column(Text, default="")
+    config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    status: Mapped[str] = mapped_column(String(32), default="not_configured")
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
