@@ -158,8 +158,8 @@ export default function AdminGoogle() {
         ok: true,
         message:
           `'ga4_test' olayi gonderildi (client_id: ${res.client_id}, HTTP ${res.status}). ` +
-          "Sunucu modu aktif: GA4 > Yonetici > DebugView > 'Sunucudan' sekmesinde ~30 saniye icinde gorunur. " +
-          "DebugView yalnizca acikken gelen olaylari gosterir; kacirdiysaniz Gercek zamanli raporuna bakin.",
+          "Dogrulama: GA4 > Raporlar > Gercek zamanli (son 30 dk) icinde 'ga4_test' olayini goruyorsaniz kurulum tamam. " +
+          "DebugView sunucu tarafli olaylari her zaman listelemez; asil kontrol Gercek zamanli rapordur.",
       };
     });
   }
