@@ -375,3 +375,48 @@ oindex.
 - Panel menusunde **Blog linki yoktur**; blog yalnizca landing page'de (nav + footer) ve /blog yolundadir.
 - Kopya icerik denetimi: shingle (4-gram) + cosine benzerligi; esik %30. Baslik benzerligi ayrica agirliklandirilir.
 - Anahtar kelime yogunlugu 0 ise "kelime gecmiyor", %3.5 ustu ise "anahtar kelime yigilmasi" uyarisi verir.
+---
+
+## 19) Urun analitigi: uyelik ve satin alma olaylari (F11)
+
+### 19.1 Mimari
+
+- **DB**: nalytics_events (id, user_id, name, source, params JSONB, value NUMERIC, currency, created_at, delivered_at).
+- **Kayit**: pi/app/analytics.py -> ecord(db, name, ...). Olaylar once DB'ye yazilir; SPA cagri sirasinda GET /api/analytics/events ile alinip GA4'e gonderilir ve POST /api/analytics/events/ack ile "iletildi" isaretlenir. Boylece kullanici sekmeden hemen sonra kapatirsa olay kaybolmaz.
+- **API** (pi/app/analytics_api.py): GET /api/analytics/events (bekleyenler), POST /api/analytics/events (istemci olayi), POST /api/analytics/events/ack, GET /api/admin/analytics/events (admin listesi + sayaclar).
+- **Frontend**: web/src/analytics.js -> 	rackEvent(name, params) (dataLayer'a yazar; gtag.js henuz yuklenmediyse kuyruga alir), lushServerEvents() (sunucu olaylarini GA4'e gonderir), 	rackClientEvent().
+- **Baglama noktalari**: Register.jsx (email sign_up), GoogleAuth.jsx -> Register/Login.jsx (google sign_up | login), Login.jsx (email login), Billing.jsx (checkout=success -> purchase akisi), AppShell.jsx (panel acilisi -> bekleyen olaylar).
+
+### 19.2 Olay sozlesmesi
+
+| Olay | Ne zaman | Parametreler |
+|---|---|---|
+| sign_up | Yeni hesap (KEY EVENT) | signup_method (google\|email), method, plan |
+| login | Giris (mevcut hesap) | signup_method, method, plan |
+| checkout_start | Odeme sayfasi acildi | plan, item_type, payment_type, alue, currency |
+| purchase | Odeme tamamlandi (KEY EVENT) | 	ransaction_id, plan, item_type, payment_type, items[], alue, currency |
+| subscription_renew | Periyodik yenileme (KEY EVENT) | plan, 	ransaction_id, alue, currency |
+| plan_change | Plan degisikligi | plan, previous_plan, payment_type |
+
+signup_method sayesinde **uye olma (google)**, **uye olma (eposta)** ve **giris** ayri ayri olculur. purchase ile subscription_renew ayridir; yenilemeler purchase toplamini sismaz.
+
+### 19.3 GA4 tarafi kurulum
+
+Elle kurulum (GA4 > Yonetici > Etkinlik > Ozel tanim):
+- **Ozel boyutlar (Event scope)**: signup_method, method, plan, item_type, payment_type, item_name, 	ransaction_id
+- **Anahtarlar olaylar (donusum)**: sign_up, purchase, subscription_renew
+
+Programatik kurulum:
+`
+cd api
+python -m app.scripts.ga4_setup --dry-run          # tanimlari listele
+export GA4_ACCESS_TOKEN=<OAuth erisim jetonu>       # analytics.readwrite kapsamli
+python -m app.scripts.ga4_setup --property 123456789
+`
+Jetonu https://accounts.google.com/o/oauth2/auth?client_id=...&scope=https://www.googleapis.com/auth/analytics.readwrite&access_type=offline adresinden alin.
+
+### 19.4 Dogrulama
+
+1. Panel > Yonetim > SEO & Pazarlama > "Analytics olaylari" tablosunda yeni kayitlar gorunur ("bekliyor" -> "iletildi").
+2. GA4 > Hata Ayiklama (DebugView) > "Analytics > URL'ye ekle" ile siteyi acinca olaylar anlik gorunur.
+3. Google Ads > Hedefler > Yeni hedef olusturma: tip "Web sitesi ziyaretleri" (Web page visits), olay sign_up ve purchase, deger purchase icin alue (USD).

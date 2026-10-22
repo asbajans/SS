@@ -11,6 +11,7 @@ from starlette.responses import Response
 from starlette.routing import Route
 
 from app.admin_api import router as admin_router
+from app.analytics_api import router as analytics_router
 from app.api_platform import router as platform_router
 from app.auth import router as auth_router
 from app.billing_api import router as billing_router
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
     app.include_router(blog_admin_router)
     app.include_router(seo_router)
     app.include_router(seo_admin_router)
+    app.include_router(analytics_router)
     app.include_router(platform_router)
     Instrumentator(excluded_handlers=["/metrics"]).instrument(app)
     return app

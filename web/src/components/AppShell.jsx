@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { api, logout } from "../api.js";
+import { flushServerEvents } from "../analytics.js";
 import { useLang } from "../i18n.js";
 import Icon from "../icons.jsx";
 
@@ -52,6 +53,11 @@ export default function AppShell() {
 
   useEffect(() => {
     api("/api/auth/me").then(setUser).catch((e) => setErr(e.message));
+  }, []);
+
+  useEffect(() => {
+    // Push queued server-side events (signup, purchase, ...) to GA4.
+    flushServerEvents();
   }, []);
 
   useEffect(() => { setOpen(false); }, [loc.pathname]);

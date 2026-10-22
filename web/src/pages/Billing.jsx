@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 
 import { api, fmtDate, fmtTokens } from "../api.js";
+import { flushServerEvents } from "../analytics.js";
 import Icon from "../icons.jsx";
 
 const COPY = {
@@ -86,6 +87,10 @@ export default function Billing() {
   useEffect(() => {
     const state = new URLSearchParams(window.location.search).get("checkout");
     if (state === "success" || state === "cancel") setCheckout(state);
+    if (state === "success") {
+      // The purchase event is recorded by the Stripe webhook; push it to GA4.
+      flushServerEvents();
+    }
     Promise.all([api("/api/billing/plans"), api("/api/billing/me")])
       .then(([catalog, mine]) => {
         setPlans(catalog.plans ?? []);

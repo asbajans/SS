@@ -8,6 +8,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.analytics import LOGIN, METHOD_EMAIL, METHOD_GOOGLE, SIGN_UP, record, signup_params
 from app.db import AsyncSessionLocal
 from app.google_auth import (
     GoogleAuthError,
@@ -64,8 +65,21 @@ async def register(data: RegisterIn, db: AsyncSession = Depends(get_db)) -> dict
         raise HTTPException(status_code=409, detail="email already registered")
     user = User(email=data.email, password_hash=hash_password(data.password))
     db.add(user)
+    await db.flush()
+    await record(
+        db,
+        SIGN_UP,
+        user_id=user.id,
+        params=signup_params(METHOD_EMAIL, user.plan or "free"),
+    )
     await db.commit()
-    return {"id": user.id, "email": user.email, "token": make_token(str(user.id), user.is_admin)}
+    return {
+        "id": user.id,
+        "email": user.email,
+        "is_new": True,
+        "signup_method": METHOD_EMAIL,
+        "token": make_token(str(user.id), user.is_admin),
+    }
 
 
 @router.post("/login")
@@ -73,7 +87,15 @@ async def login(data: LoginIn, db: AsyncSession = Depends(get_db)) -> dict:
     user = (await db.scalars(select(User).where(User.email == data.email))).first()
     if user is None or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="invalid credentials")
+    await record(
+        db,
+        LOGIN,
+        user_id=user.id,
+        params=signup_params(METHOD_EMAIL, user.plan or "free"),
+    )
+    await db.commit()
     return {"id": user.id, "email": user.email, "is_admin": user.is_admin,
+            "signup_method": METHOD_EMAIL,
             "token": make_token(str(user.id), user.is_admin)}
 
 
@@ -99,6 +121,7 @@ async def google_login(data: GoogleLoginIn, db: AsyncSession = Depends(get_db)) 
     email = identity["email"]
     google_sub = identity["sub"] or None
     user = (await db.scalars(select(User).where(User.email == email))).first()
+    is_new = user is None
     if user is None:
         user = User(
             email=email,
@@ -106,13 +129,29 @@ async def google_login(data: GoogleLoginIn, db: AsyncSession = Depends(get_db)) 
             google_id=google_sub,
         )
         db.add(user)
-    elif user.google_id is None and google_sub:
-        user.google_id = google_sub
+        await db.flush()
+        await record(
+            db,
+            SIGN_UP,
+            user_id=user.id,
+            params=signup_params(METHOD_GOOGLE, user.plan or "free"),
+        )
+    else:
+        if user.google_id is None and google_sub:
+            user.google_id = google_sub
+        await record(
+            db,
+            LOGIN,
+            user_id=user.id,
+            params=signup_params(METHOD_GOOGLE, user.plan or "free"),
+        )
     await db.commit()
     await db.refresh(user)
     return {
         "id": user.id,
         "email": user.email,
         "is_admin": user.is_admin,
+        "is_new": is_new,
+        "signup_method": METHOD_GOOGLE,
         "token": make_token(str(user.id), user.is_admin),
     }

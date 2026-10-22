@@ -90,6 +90,8 @@ export default function AdminSeo() {
   const [posts, setPosts] = useState([]);
   const [audit, setAudit] = useState(null);
   const [log, setLog] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [eventCounts, setEventCounts] = useState([]);
   const [editingPage, setEditingPage] = useState(null);
   const [pageForm, setPageForm] = useState({});
   const [editingPost, setEditingPost] = useState(null);
@@ -134,9 +136,20 @@ export default function AdminSeo() {
     }
   }, []);
 
+  const loadEvents = useCallback(async () => {
+    try {
+      const data = await api("/api/admin/analytics/events?limit=100");
+      setEvents(data.events ?? []);
+      setEventCounts(data.counts ?? []);
+    } catch (e) {
+      setErr(e.message);
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadAudit(); }, [loadAudit]);
   useEffect(() => { loadLog(); }, [loadLog]);
+  useEffect(() => { loadEvents(); }, [loadEvents]);
 
   if (user && !user.is_admin) {
     return <p className="error">Bu sayfa yalnızca yöneticilere açıktır.</p>;
@@ -574,6 +587,54 @@ export default function AdminSeo() {
             <Text value={form.adsense_slot_secondary} onChange={(v) => set("adsense_slot_secondary", v)} />
           </Field>
         </div>
+      </div>
+
+      {/* ---------- analytics events ---------- */}
+      <div className="page-head" style={{ marginTop: 26 }}>
+        <div>
+          <h2>Analytics olayları</h2>
+          <p>
+            Üyelik ve satın alma olayları GA4&apos;e gönderilmek üzere kuyruğa alınır; tarayıcı
+            gönderdikten sonra &quot;iletildi&quot; işaretlenir.
+          </p>
+        </div>
+        <button className="btn btn-sm" type="button" onClick={loadEvents}>Yenile</button>
+      </div>
+      <div className="card card-pad" style={{ marginBottom: 14 }}>
+        <div className="row">
+          {eventCounts.map((c) => (
+            <span key={c.name} className="badge">{c.name}: {c.count}</span>
+          ))}
+          {eventCounts.length === 0 && <span className="muted small">Henüz olay yok.</span>}
+        </div>
+      </div>
+      <div className="card table-wrap">
+        <table className="tbl compact">
+          <thead>
+            <tr><th>Zaman</th><th>Olay</th><th>Kaynak</th><th>Değer</th><th>Parametreler</th><th>Durum</th></tr>
+          </thead>
+          <tbody>
+            {events.map((e) => (
+              <tr key={e.id}>
+                <td className="small">{e.created_at ? new Date(e.created_at).toLocaleString("tr-TR") : "—"}</td>
+                <td className="mono small">{e.name}</td>
+                <td className="small">{e.source}</td>
+                <td className="num small">
+                  {e.value != null ? `${e.value} ${e.currency ?? ""}` : "—"}
+                </td>
+                <td className="small muted" style={{ maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {JSON.stringify(e.params ?? {})}
+                </td>
+                <td>
+                  {e.delivered
+                    ? <span className="badge ok">iletildi</span>
+                    : <span className="badge warn">bekliyor</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {events.length === 0 && <div style={{ padding: 16 }}><p className="muted small">Kayıt bulunamadı.</p></div>}
       </div>
 
       {/* ---------- static pages ---------- */}

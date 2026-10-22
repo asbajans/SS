@@ -343,6 +343,30 @@ class SeoSubmission(Base):
     )
 
 
+class AnalyticsEvent(Base):
+    """Product analytics event (sign_up, purchase, ...) queued for the browser.
+
+    Server-side facts (signup, Stripe purchase) are stored here and pushed to
+    GA4 by the SPA once the user is authenticated, so nothing is lost when the
+    user closes the tab right after the action.
+    """
+
+    __tablename__ = "analytics_events"
+    id: Mapped[uuid.UUID] = uid()
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    name: Mapped[str] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(16), default="backend")
+    params: Mapped[dict] = mapped_column(JSONB, default=dict)
+    value: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    delivered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class BlogTopic(Base):
     __tablename__ = "blog_topics"
     id: Mapped[uuid.UUID] = uid()

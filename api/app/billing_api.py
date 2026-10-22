@@ -9,6 +9,16 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.analytics import (
+    CHECKOUT_START,
+    ITEM_CREDIT_PACK,
+    ITEM_SUBSCRIPTION,
+    PLAN_CHANGE,
+    PURCHASE,
+    SUBSCRIPTION_RENEW,
+    purchase_params,
+    record,
+)
 from app.auth import current_user, get_db
 from app.config import settings
 from app.db import AsyncSessionLocal
@@ -163,6 +173,24 @@ async def checkout(
             )
     except stripe.StripeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    # Checkout intent (not a purchase yet) -> GA4 "checkout_start"
+    price_cents = plan["price_cents"] if plan is not None else pack["price_cents"]
+    await record(
+        db,
+        CHECKOUT_START,
+        user_id=user.id,
+        params={
+            "plan": plan["key"] if plan is not None else pack["key"],
+            "item_type": ITEM_SUBSCRIPTION if plan is not None else ITEM_CREDIT_PACK,
+            "payment_type": "subscription" if plan is not None else "one_time",
+            "value": round(price_cents / 100, 2),
+            "currency": "USD",
+        },
+        value=round(price_cents / 100, 2),
+        currency="USD",
+    )
+    await db.commit()
     return {"url": session.url, "session_id": session.id}
 
 
@@ -225,6 +253,7 @@ async def _handle_checkout_completed(db: AsyncSession, session) -> None:
     if customer_id:
         user.stripe_customer_id = str(customer_id)
     kind = metadata.get("kind")
+    previous_plan = user.plan or "free"
     if kind == "plan":
         subscription_id = session.get("subscription")
         subscription = None
@@ -241,6 +270,7 @@ async def _handle_checkout_completed(db: AsyncSession, session) -> None:
         )
         if plan is not None:
             _apply_plan(user, plan, subscription, reset_usage=True)
+            await _record_plan_change(db, user, plan["key"], previous_plan, "subscription")
     elif kind == "credit":
         tokens = int(metadata.get("tokens") or 0)
         if tokens > 0:
@@ -253,6 +283,74 @@ async def _handle_checkout_completed(db: AsyncSession, session) -> None:
                     stripe_ref=session.get("id"),
                 )
             )
+    await _record_purchase(db, user, session, kind, metadata)
+
+
+async def _record_plan_change(
+    db: AsyncSession, user: User, plan_key: str, previous_plan: str, payment_type: str
+) -> None:
+    if plan_key == previous_plan:
+        return
+    await record(
+        db,
+        PLAN_CHANGE,
+        user_id=user.id,
+        params={
+            "plan": plan_key,
+            "previous_plan": previous_plan,
+            "payment_type": payment_type,
+        },
+    )
+
+
+async def _record_purchase(
+    db: AsyncSession, user: User, session, kind: str | None, metadata: dict
+) -> None:
+    """Emit the GA4 `purchase` event with the actual amount paid."""
+    amount_total = session.get("amount_total")
+    currency = session.get("currency") or "usd"
+    try:
+        value = round(float(amount_total or 0) / 100, 2)
+    except (TypeError, ValueError):
+        value = 0.0
+
+    if kind == "plan":
+        plan_key = metadata.get("plan") or user.plan or "free"
+        item_type = ITEM_SUBSCRIPTION
+        payment_type = "subscription"
+        item_name = f"plan_{plan_key}"
+    else:
+        plan_key = metadata.get("plan") or "credit_pack"
+        item_type = ITEM_CREDIT_PACK
+        payment_type = "one_time"
+        item_name = f"credit_{metadata.get('tokens') or ''}".strip("_")
+
+    items = [
+        {
+            "item_id": plan_key,
+            "item_name": item_name,
+            "price": value,
+            "quantity": 1,
+            "item_category": item_type,
+        }
+    ]
+    await record(
+        db,
+        PURCHASE,
+        user_id=user.id,
+        params=purchase_params(
+            transaction_id=str(session.get("id") or ""),
+            plan=plan_key,
+            item_type=item_type,
+            payment_type=payment_type,
+            value=value,
+            currency=currency,
+            item_name=item_name,
+            items=items,
+        ),
+        value=value,
+        currency=currency,
+    )
 
 
 async def _handle_subscription(db: AsyncSession, subscription) -> None:
@@ -304,6 +402,27 @@ async def _handle_invoice_paid(db: AsyncSession, invoice) -> None:
     period_end = invoice.get("period_end")
     if period_end:
         user.billing_period_end = datetime.fromtimestamp(int(period_end), UTC)
+
+    # Recurring revenue is a separate event so it never inflates "purchase".
+    amount_paid = invoice.get("amount_paid")
+    currency = invoice.get("currency") or "usd"
+    try:
+        value = round(float(amount_paid or 0) / 100, 2)
+    except (TypeError, ValueError):
+        value = 0.0
+    await record(
+        db,
+        SUBSCRIPTION_RENEW,
+        user_id=user.id,
+        params={
+            "plan": user.plan or "free",
+            "transaction_id": str(invoice.get("id") or ""),
+            "value": value,
+            "currency": currency.upper(),
+        },
+        value=value,
+        currency=currency,
+    )
 
 
 async def _handle_event(db: AsyncSession, event) -> None:

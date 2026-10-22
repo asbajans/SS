@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { login } from "../api.js";
+import { flushServerEvents, trackEvent } from "../analytics.js";
 import GoogleAuth from "../components/GoogleAuth.jsx";
 import Icon from "../icons.jsx";
 
@@ -17,12 +18,21 @@ export default function Login() {
     setBusy(true); setError(null);
     try {
       await login(email, password);
+      trackEvent("login", { signup_method: "email", method: "email" });
+      flushServerEvents();
       nav("/app");
     } catch (err) { setError(err.message); }
     finally { setBusy(false); }
   }
 
-  const onGoogleSuccess = useCallback(() => {
+  const onGoogleSuccess = useCallback((data) => {
+    const method = data?.signup_method || "google";
+    trackEvent(data?.is_new ? "sign_up" : "login", {
+      signup_method: method,
+      method,
+      plan: "free",
+    });
+    flushServerEvents();
     nav(sessionStorage.getItem("ss_prompt") ? "/app/projects/new" : "/app");
   }, [nav]);
 
