@@ -76,11 +76,11 @@ async def send_event(
         return {"ok": False, "error": "measurement_id veya api_secret eksik"}
     event_params = dict(params or {})
     if debug:
-        # Guarantees the event lands in DebugView even when the debug endpoint
-        # is proxied or cached by an intermediary.
+        # The validation server (/debug/mp/collect) never delivers events.
+        # DebugView only shows events sent to /mp/collect with debug_mode=1.
         event_params.setdefault("debug_mode", 1)
     payload = build_payload(measurement_id, api_secret, name, event_params, client_id)
-    url = DEBUG_URL if debug else COLLECT_URL
+    url = COLLECT_URL
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             resp = await client.post(
@@ -100,20 +100,45 @@ async def send_event(
     except ValueError:
         data = {"raw": resp.text[:300]}
     if debug:
-        messages = data.get("validationMessages") or []
-        if messages:
-            text = "; ".join(
-                f"{m.get('fieldPath', '?')}: {m.get('description', '')}" for m in messages
-            )
-            return {
-                "ok": False,
-                "status": resp.status_code,
-                "error": text[:400],
-                "validationMessages": messages,
-                "response": data,
-            }
         return {"ok": True, "status": resp.status_code, "response": data}
     return {"ok": True, "status": resp.status_code}
+
+
+async def validate_event(
+    measurement_id: str,
+    api_secret: str,
+    name: str,
+    params: dict | None = None,
+    client_id: str = "ss.anonymous",
+) -> dict:
+    """Validate a payload on the MP validation server.
+
+    The validation server does not deliver the event; use it only to surface
+    payload errors before sending the real request to COLLECT_URL.
+    """
+    if not measurement_id or not api_secret:
+        return {"ok": False, "error": "measurement_id veya api_secret eksik"}
+    payload = build_payload(measurement_id, api_secret, name, dict(params or {}), client_id)
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                DEBUG_URL,
+                params={"measurement_id": measurement_id, "api_secret": api_secret},
+                json={"client_id": payload["client_id"], "events": payload["events"]},
+            )
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": str(exc)[:300]}
+    try:
+        data = resp.json()
+    except ValueError:
+        return {"ok": True, "validationMessages": []}
+    messages = data.get("validationMessages") or []
+    if messages:
+        text = "; ".join(
+            f"{m.get('fieldPath', '?')}: {m.get('description', '')}" for m in messages
+        )
+        return {"ok": False, "error": text[:400], "validationMessages": messages}
+    return {"ok": True, "validationMessages": []}
 
 
 async def send_batch(

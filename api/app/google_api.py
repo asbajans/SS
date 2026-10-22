@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.admin_api import admin_only
 from app.analytics import CUSTOM_DIMENSIONS, KEY_EVENTS
 from app.auth import get_db
-from app.ga4 import client_id_for, send_event
+from app.ga4 import client_id_for, send_event, validate_event
 from app.google import (
     PROVIDERS,
     SCOPES,
@@ -272,15 +272,29 @@ async def ga4_test_event(db: AsyncSession = Depends(get_db)) -> dict:
             ),
         )
     cid = client_id_for("admin-test")
+    params = {"source": "admin_panel", "value": 0, "currency": "USD"}
+    validation = await validate_event(
+        seo.analytics_id, seo.ga4_api_secret, "ga4_test", params, client_id=cid
+    )
+    if not validation.get("ok"):
+        validation.update({"event": "ga4_test", "client_id": cid, "stage": "validation"})
+        return validation
     result = await send_event(
         seo.analytics_id,
         seo.ga4_api_secret,
         "ga4_test",
-        {"source": "admin_panel", "value": 0, "currency": "USD"},
+        params,
         client_id=cid,
         debug=True,
     )
-    result.update({"event": "ga4_test", "client_id": cid, "debug_view": "Sunucudan"})
+    result.update(
+        {
+            "event": "ga4_test",
+            "client_id": cid,
+            "debug_view": "Sunucudan",
+            "validationMessages": validation.get("validationMessages", []),
+        }
+    )
     return result
 
 
