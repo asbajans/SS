@@ -638,34 +638,37 @@ async def tm_setup(payload: TagManagerIn, db: AsyncSession = Depends(get_db)) ->
     cred = _credentials(row, "tag_manager")
     if not cred.is_complete:
         raise HTTPException(status_code=400, detail="Tag Manager OAuth bilgileri eksik")
-    container_id = payload.container_id or cred.get("container_id")
-    if not container_id:
-        raise HTTPException(status_code=400, detail="container ID gerekli")
-    if not payload.measurement_id:
+    public_id = (payload.container_id or cred.get("container_id") or "").strip()
+    if not public_id:
+        raise HTTPException(status_code=400, detail="container ID gerekli (GTM-XXXXXXX)")
+    measurement_id = payload.measurement_id or cred.get("measurement_id") or ""
+    if not measurement_id:
         raise HTTPException(status_code=400, detail="measurement ID gerekli")
 
-    tag_body = {
-        "name": "GA4 Configuration",
-        "type": "gaawc",
-        "tagIds": [payload.measurement_id],
-    }
     try:
-        tag = await api_request(
-            cred,
-            "POST",
-            f"{TAG_MANAGER}/containers/{container_id}/tags",
-            json_body=tag_body,
-        )
-        trigger_body = {
-            "name": "All Pages",
-            "type": "PAGEVIEW",
+        account_id, container = await _find_tm_container(cred, public_id)
+        if not container:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Kapsayici bulunamadi: {public_id}. OAuth hesabinda gorunur mu?",
+            )
+        container_id = container["containerId"]
+        base = f"{TAG_MANAGER}/accounts/{account_id}/containers/{container_id}"
+        workspaces = await api_request(cred, "GET", f"{base}/workspaces")
+        workspace_id = (workspaces.get("workspace") or [{}])[0].get("workspaceId")
+        if not workspace_id:
+            raise HTTPException(status_code=400, detail="Varsayilan workspace bulunamadi")
+
+        tag_body = {
+            "name": "GA4 Configuration",
+            "type": "gaawc",
+            "parameter": [
+                {"type": "template", "key": "measurementId", "value": measurement_id}
+            ],
             "firingTriggerId": ["2147479553"],
         }
-        trigger = await api_request(
-            cred,
-            "POST",
-            f"{TAG_MANAGER}/containers/{container_id}/triggers",
-            json_body=trigger_body,
+        tag = await api_request(
+            cred, "POST", f"{base}/workspaces/{workspace_id}/tags", json_body=tag_body
         )
     except GoogleAuthError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -673,23 +676,16 @@ async def tm_setup(payload: TagManagerIn, db: AsyncSession = Depends(get_db)) ->
     published = False
     if payload.publish:
         try:
-            await api_request(
+            version = await api_request(
                 cred,
                 "POST",
-                f"{TAG_MANAGER}/containers/{container_id}/versions:create",
-                json_body={},
+                f"{base}/workspaces/{workspace_id}:create_version",
+                json_body={"name": "GA4 setup", "notes": "GA4 config tag (panel)"},
             )
-            versions = await api_request(
-                cred, "GET", f"{TAG_MANAGER}/containers/{container_id}/versions"
-            )
-            latest = (versions.get("containerVersion") or [{}])[-1]
-            version_id = latest.get("name")
+            version_id = (version.get("containerVersion") or {}).get("containerVersionId")
             if version_id:
                 await api_request(
-                    cred,
-                    "POST",
-                    f"{TAG_MANAGER}/containers/{container_id}/versions/{version_id}/publish",
-                    json_body={},
+                    cred, "POST", f"{base}/versions/{version_id}:publish", json_body={}
                 )
                 published = True
         except GoogleAuthError as exc:
@@ -697,8 +693,33 @@ async def tm_setup(payload: TagManagerIn, db: AsyncSession = Depends(get_db)) ->
                 "ok": True,
                 "published": False,
                 "error": str(exc),
+                "container": container.get("publicId"),
                 "tag": tag,
-                "trigger": trigger,
             }
 
-    return {"ok": True, "published": published, "tag": tag, "trigger": trigger}
+    return {
+        "ok": True,
+        "published": published,
+        "container": container.get("publicId"),
+        "workspace": workspace_id,
+        "tag": tag,
+    }
+
+
+async def _find_tm_container(
+    cred: GoogleCredentials, public_id: str
+) -> tuple[str | None, dict | None]:
+    """Resolve a GTM-XXXXXXX public ID to its numeric account/container."""
+    accounts = await api_request(cred, "GET", f"{TAG_MANAGER}/accounts")
+    for account in accounts.get("account", []):
+        account_id = account.get("accountId")
+        if not account_id:
+            continue
+        containers = await api_request(
+            cred, "GET", f"{TAG_MANAGER}/accounts/{account_id}/containers"
+        )
+        for container in containers.get("container", []):
+            if public_id in (container.get("publicId"), container.get("containerId")):
+                return account_id, container
+    return None, None
+

@@ -22,7 +22,6 @@ SCOPES: dict[str, list[str]] = {
     "ga4": [
         "https://www.googleapis.com/auth/analytics.edit",
         "https://www.googleapis.com/auth/analytics.readonly",
-        "https://www.googleapis.com/auth/analytics.manage",
     ],
     "search_console": [
         "https://www.googleapis.com/auth/webmasters",
@@ -32,8 +31,11 @@ SCOPES: dict[str, list[str]] = {
         "https://www.googleapis.com/auth/adwords",
     ],
     "tag_manager": [
-        "https://www.googleapis.com/auth/tagmanager.edit",
-        "https://www.googleapis.com/auth/tagmanager.manage",
+        "https://www.googleapis.com/auth/tagmanager.edit.containers",
+        "https://www.googleapis.com/auth/tagmanager.edit.containerversions",
+        "https://www.googleapis.com/auth/tagmanager.publish",
+        "https://www.googleapis.com/auth/tagmanager.readonly",
+        "https://www.googleapis.com/auth/tagmanager.manage.accounts",
     ],
 }
 

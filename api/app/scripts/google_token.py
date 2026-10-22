@@ -5,6 +5,8 @@ Kullanim:
     python -m app.scripts.google_token --provider ga4 --client-id <CLIENT_ID>
 
     # 2) tarayicida acilan URL'ye girin, olusan kodu kopyalayin
+    #    (yonlendirme http://localhost:8765/?code=... adresine gider; sayfa
+    #     acilmaz, adres cubugundaki code= degerini kopyalayin)
     # 3) refresh token alin
     python -m app.scripts.google_token --provider ga4 --client-id <CLIENT_ID> \
         --client-secret <CLIENT_SECRET> --code 4/0AY...
@@ -24,7 +26,8 @@ def main() -> int:
     parser.add_argument("--client-id", required=True)
     parser.add_argument("--client-secret", default="")
     parser.add_argument("--code", default="", help="authorization code (yoksa sadece URL yazdirilir)")
-    parser.add_argument("--redirect-uri", default="urn:ietf:wg:oauth:2.0:oob")
+    # Google, OOB ("urn:ietf:wg:oauth:2.0:oob") akisini kaldirdi; loopback kullanin.
+    parser.add_argument("--redirect-uri", default="http://localhost:8765")
     args = parser.parse_args()
 
     if not args.code:
