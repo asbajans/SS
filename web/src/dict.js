@@ -1,6 +1,13 @@
 export const EN = {
   "Ana menü": "Main menu",
   "Blog editörü": "Blog editor",
+  "SEO & Pazarlama": "SEO & Marketing",
+  "SEO denetimi": "SEO audit",
+  "Site kimliği": "Site identity",
+  "Tarama ve AI erişimi": "Crawling & AI access",
+  "Arama motoru doğrulaması": "Search engine verification",
+  "Statik sayfa meta verileri": "Static page metadata",
+  "Analitik ve reklam": "Analytics & ads",
   "Girişe dön": "Back to sign in",
   "Hesap": "Account",
   "Menü": "Menu",

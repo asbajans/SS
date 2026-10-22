@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api, fmtTokens, getToken } from "./api.js";
+import AdSlot from "./components/AdSlot.jsx";
+import SeoHead from "./components/SeoHead.jsx";
 
 const FALLBACK_PLANS = [
   { key: "free", price: 0, token_budget: 1_000_000, agents: 50, rounds: 20 },
@@ -307,6 +309,22 @@ export default function App() {
 
   return (
     <div className="lp">
+      <SeoHead
+        title={lang === "en" ? "Synthetic community simulation for market research" : "Pazar araştırması için sentetik topluluk simülasyonu"}
+        description={lang === "en"
+          ? "Simulate how thousands of AI personas react to your campaign before you launch. Synthetic community simulation for market research."
+          : "Kampanyanızı yayına almadan binlerce yapay zekâ personasının nasıl tepki vereceğini simüle edin. Pazar araştırması için sentetik topluluk simülasyonu."}
+        canonical="/"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "Social Simulator",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          description: "Sentetik topluluk simülasyonu platformu.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        }}
+      />
       <div className="lp-grid" aria-hidden="true" />
       <div className="lp-glow" aria-hidden="true" />
 
@@ -436,6 +454,7 @@ export default function App() {
             })}
           </div>
           <p className="lp-pricing-note">{t.creditsNote}</p>
+          <AdSlot slot="primary" className="ad-slot-inline" />
         </section>
 
         <section className="lp-final lp-reveal">
@@ -456,6 +475,9 @@ export default function App() {
             <Link to="/blog">Blog</Link>
             <Link to={panelHref}>{t.panel}</Link>
             <Link to={logged ? "/app/billing" : "/register"}>{t.navPricing}</Link>
+            <a href="/feed.xml">RSS</a>
+            <a href="/llms.txt">llms.txt</a>
+            <a href="/sitemap.xml">Sitemap</a>
           </div>
         </div>
         <div className="lp-footer-bottom">

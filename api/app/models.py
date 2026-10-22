@@ -248,6 +248,98 @@ class BlogPost(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+    # --- SEO ---
+    meta_description_tr: Mapped[str] = mapped_column(Text, default="")
+    meta_description_en: Mapped[str] = mapped_column(Text, default="")
+    focus_keyword_tr: Mapped[str] = mapped_column(String(160), default="")
+    focus_keyword_en: Mapped[str] = mapped_column(String(160), default="")
+    og_image: Mapped[str] = mapped_column(String(512), default="")
+    canonical_url: Mapped[str] = mapped_column(String(512), default="")
+    noindex: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class SeoSettings(Base):
+    """Singleton row (id=1) with site-wide SEO / marketing configuration."""
+
+    __tablename__ = "seo_settings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+
+    # site identity
+    site_name: Mapped[str] = mapped_column(String(160), default="Social Simulator")
+    site_url: Mapped[str] = mapped_column(String(256), default="")
+    title_suffix: Mapped[str] = mapped_column(String(80), default="")
+    default_description_tr: Mapped[str] = mapped_column(Text, default="")
+    default_description_en: Mapped[str] = mapped_column(Text, default="")
+    og_image: Mapped[str] = mapped_column(String(512), default="")
+    twitter_site: Mapped[str] = mapped_column(String(80), default="")
+
+    # crawling
+    robots_extra: Mapped[str] = mapped_column(Text, default="")
+    block_ai_bots: Mapped[bool] = mapped_column(Boolean, default=False)
+    allow_ai_bots: Mapped[str] = mapped_column(
+        Text, default="GPTBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot"
+    )
+    llms_txt: Mapped[str] = mapped_column(Text, default="")
+
+    # verification
+    google_site_verification: Mapped[str] = mapped_column(String(256), default="")
+    bing_site_verification: Mapped[str] = mapped_column(String(256), default="")
+
+    # indexnow
+    indexnow_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    indexnow_key: Mapped[str] = mapped_column(String(128), default="")
+    indexnow_endpoint: Mapped[str] = mapped_column(
+        String(256), default="https://api.indexnow.org/indexnow"
+    )
+
+    # analytics
+    analytics_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    analytics_provider: Mapped[str] = mapped_column(String(32), default="ga4")
+    analytics_id: Mapped[str] = mapped_column(String(128), default="")
+    analytics_domain: Mapped[str] = mapped_column(String(160), default="")
+
+    # ads
+    ads_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    adsense_client: Mapped[str] = mapped_column(String(64), default="")
+    adsense_slot: Mapped[str] = mapped_column(String(64), default="")
+    adsense_slot_secondary: Mapped[str] = mapped_column(String(64), default="")
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class SeoPage(Base):
+    """Per-route SEO overrides for static/marketing pages."""
+
+    __tablename__ = "seo_pages"
+    path: Mapped[str] = mapped_column(String(256), primary_key=True)
+    title_tr: Mapped[str] = mapped_column(Text, default="")
+    title_en: Mapped[str] = mapped_column(Text, default="")
+    description_tr: Mapped[str] = mapped_column(Text, default="")
+    description_en: Mapped[str] = mapped_column(Text, default="")
+    og_image: Mapped[str] = mapped_column(String(512), default="")
+    canonical_url: Mapped[str] = mapped_column(String(512), default="")
+    focus_keyword: Mapped[str] = mapped_column(String(160), default="")
+    noindex: Mapped[bool] = mapped_column(Boolean, default=False)
+    sitemap_priority: Mapped[float] = mapped_column(Numeric(3, 2), default=0.7)
+    changefreq: Mapped[str] = mapped_column(String(16), default="weekly")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class SeoSubmission(Base):
+    """IndexNow submission log (audit trail for admin)."""
+
+    __tablename__ = "seo_submissions"
+    id: Mapped[uuid.UUID] = uid()
+    url: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(32), default="pending")
+    detail: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class BlogTopic(Base):

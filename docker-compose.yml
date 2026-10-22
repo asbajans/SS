@@ -97,7 +97,12 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-508160227531-9g41g9747aps66uovothr872083umoin.apps.googleusercontent.com}
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL}
       FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3900}
+      INDEXNOW_ENABLED: ${INDEXNOW_ENABLED:-0}
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
+      INDEXNOW_ENDPOINT: ${INDEXNOW_ENDPOINT:-https://api.indexnow.org/indexnow}
       ENGINE_MAX_AGENTS: ${ENGINE_MAX_AGENTS:-300}
+
       ENGINE_MAX_ROUNDS: ${ENGINE_MAX_ROUNDS:-80}
       METRICS_PORT: 9101
     depends_on:
@@ -128,6 +133,10 @@ services:
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       OPENROUTER_MONTHLY_CAP_USD: ${OPENROUTER_MONTHLY_CAP_USD:-50}
       LLM_MOCK_MODE: ${LLM_MOCK_MODE:-0}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3900}
+      INDEXNOW_ENABLED: ${INDEXNOW_ENABLED:-0}
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
+      INDEXNOW_ENDPOINT: ${INDEXNOW_ENDPOINT:-https://api.indexnow.org/indexnow}
       ENGINE_MAX_AGENTS: ${ENGINE_MAX_AGENTS:-300}
       ENGINE_MAX_ROUNDS: ${ENGINE_MAX_ROUNDS:-80}
     depends_on:
@@ -136,6 +145,7 @@ services:
       redis:
         condition: service_healthy
     command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+
     healthcheck:
       disable: true
 
@@ -158,6 +168,10 @@ services:
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       OPENROUTER_MONTHLY_CAP_USD: ${OPENROUTER_MONTHLY_CAP_USD:-50}
       LLM_MOCK_MODE: ${LLM_MOCK_MODE:-0}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3900}
+      INDEXNOW_ENABLED: ${INDEXNOW_ENABLED:-0}
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
+      INDEXNOW_ENDPOINT: ${INDEXNOW_ENDPOINT:-https://api.indexnow.org/indexnow}
       ENGINE_MAX_AGENTS: ${ENGINE_MAX_AGENTS:-300}
       ENGINE_MAX_ROUNDS: ${ENGINE_MAX_ROUNDS:-80}
     depends_on:

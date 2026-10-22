@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { api, fmtDate } from "../api.js";
+import AdSlot from "../components/AdSlot.jsx";
+import SeoHead from "../components/SeoHead.jsx";
 import Icon from "../icons.jsx";
 
 function Body({ text }) {
@@ -33,15 +35,40 @@ export default function BlogPostPage() {
     setPost(null);
     setErr(null);
     api(`/api/blog/posts/${encodeURIComponent(slug)}`)
-      .then((data) => {
-        setPost(data);
-        document.title = `${en ? data.title_en : data.title_tr} — Social Simulation`;
-      })
+      .then((data) => setPost(data))
       .catch((e) => setErr(e.message));
-  }, [slug, en]);
+  }, [slug]);
+
+  const jsonLd = post
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: en ? post.title_en : post.title_tr,
+        description: post.meta_description_en || post.excerpt_en || post.meta_description_tr || post.excerpt_tr,
+        url: `${window.location.origin}/blog/${post.slug}`,
+        datePublished: post.published_at,
+        dateModified: post.updated_at,
+        inLanguage: en ? "en" : "tr",
+        author: { "@type": "Organization", name: "Social Simulator" },
+        publisher: { "@type": "Organization", name: "Social Simulator" },
+        ...(post.og_image ? { image: post.og_image } : {}),
+        ...(post.focus_keyword_tr ? { keywords: post.focus_keyword_tr } : {}),
+      }
+    : null;
 
   return (
     <div className="landing blog-shell">
+      <SeoHead
+        title={post ? (en ? post.title_en : post.title_tr) : ""}
+        description={post
+          ? (en ? post.meta_description_en || post.excerpt_en : post.meta_description_tr || post.excerpt_tr)
+          : ""}
+        ogImage={post?.og_image}
+        canonical={post ? `/blog/${post.slug}` : ""}
+        noindex={Boolean(post?.noindex)}
+        ogType="article"
+        jsonLd={jsonLd}
+      />
       <nav className="landing-nav">
         <Link className="brand" to="/" aria-label="Social Simulator">
           <img src="/logo-light.png" alt="Social Simulator" />
@@ -70,6 +97,7 @@ export default function BlogPostPage() {
               <Link className="btn btn-primary" to="/register">{en ? "Try it free" : "Ücretsiz deneyin"}</Link>
               <Link className="btn" to="/blog">{en ? "Back to blog" : "Bloga dön"}</Link>
             </div>
+            <AdSlot slot="secondary" className="ad-slot-inline" />
           </>
         )}
       </article>

@@ -7,6 +7,7 @@ import App from "./App.jsx";
 import Admin from "./pages/Admin.jsx";
 import AdminBilling from "./pages/AdminBilling.jsx";
 import AdminBlog from "./pages/AdminBlog.jsx";
+import AdminSeo from "./pages/AdminSeo.jsx";
 import ApiAccess from "./pages/ApiAccess.jsx";
 import Billing from "./pages/Billing.jsx";
 import Blog from "./pages/Blog.jsx";
@@ -23,6 +24,7 @@ import RunDetail from "./pages/RunDetail.jsx";
 import Runs from "./pages/Runs.jsx";
 import Settings from "./pages/Settings.jsx";
 import { getToken } from "./api.js";
+import { AnalyticsLoader } from "./components/SeoHead.jsx";
 import { initI18n } from "./i18n.js";
 import "./styles.css";
 import "./theme.css";
@@ -31,9 +33,11 @@ import "./landing.css";
 initI18n();
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Routes>
+    <StrictMode>
+      <BrowserRouter>
+        <AnalyticsLoader />
+        <Routes>
+
         <Route path="/" element={<App />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -54,6 +58,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="admin" element={<Admin />} />
           <Route path="admin/billing" element={<AdminBilling />} />
           <Route path="admin/blog" element={<AdminBlog />} />
+          <Route path="admin/seo" element={<AdminSeo />} />
         </Route>
         <Route
           path="*"

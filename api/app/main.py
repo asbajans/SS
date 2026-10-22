@@ -22,6 +22,8 @@ from app.health import router as health_router
 from app.llm_gateway.router import router as llm_router
 from app.privacy_api import router as privacy_router
 from app.runs_api import router as runs_router
+from app.seo_admin_api import router as seo_admin_router
+from app.seo_api import router as seo_router
 from app.startup import create_first_admin, ensure_schema, seed_blog, seed_templates
 from app.templates_api import router as templates_router
 
@@ -69,6 +71,8 @@ def create_app() -> FastAPI:
     app.include_router(privacy_router)
     app.include_router(blog_router)
     app.include_router(blog_admin_router)
+    app.include_router(seo_router)
+    app.include_router(seo_admin_router)
     app.include_router(platform_router)
     Instrumentator(excluded_handlers=["/metrics"]).instrument(app)
     return app

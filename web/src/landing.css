@@ -514,6 +514,14 @@
 .lp-footer-links { display: flex; flex-wrap: wrap; gap: 22px; padding-top: 6px; }
 .lp-footer-links a { color: #9bacc2; transition: color 0.18s; }
 .lp-footer-links a:hover { color: var(--lp-cyan); }
+
+/* ads */
+.ad-slot { margin: 26px auto 0; max-width: 100%; text-align: center; }
+.ad-slot-inline { margin-top: 30px; }
+.ad-label {
+  display: block; font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted); opacity: 0.6; margin-bottom: 6px;
+}
 .lp-footer-bottom {
   display: flex;
   justify-content: space-between;

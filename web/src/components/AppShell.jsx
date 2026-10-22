@@ -27,6 +27,7 @@ const TITLES = [
   ["/app/billing", "Plan & Faturalama"],
   ["/app/settings", "Ayarlar"],
   ["/app/admin/blog", "Blog editörü"],
+  ["/app/admin/seo", "SEO & Pazarlama"],
   ["/app/admin/billing", "Faturalama yönetimi"],
   ["/app/admin", "Yönetim"],
   ["/app", "Genel Bakış"],
@@ -135,6 +136,10 @@ export default function AppShell() {
               <NavLink to="/app/admin/blog" className="nav-item" onClick={() => setOpen(false)}>
                 <Icon name="doc" />
                 <span>Blog editörü</span>
+              </NavLink>
+              <NavLink to="/app/admin/seo" className="nav-item" onClick={() => setOpen(false)}>
+                <Icon name="chart" />
+                <span>SEO &amp; Pazarlama</span>
               </NavLink>
             </>
           )}

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api, fmtDate } from "../api.js";
+import AdSlot from "../components/AdSlot.jsx";
+import SeoHead from "../components/SeoHead.jsx";
 import Icon from "../icons.jsx";
 
 export default function Blog() {
@@ -18,6 +20,13 @@ export default function Blog() {
 
   return (
     <div className="landing blog-shell">
+      <SeoHead
+        title={en ? "Research notes & product updates" : "Araştırma notları ve ürün güncellemeleri"}
+        description={en
+          ? "Synthetic communities, simulation methodology and automation notes from Social Simulation."
+          : "Sentetik topluluklar, simülasyon metodolojisi ve otomasyon üzerine araştırma notları."}
+        canonical="/blog"
+      />
       <nav className="landing-nav">
         <Link className="brand" to="/" aria-label="Social Simulator">
           <img src="/logo-light.png" alt="Social Simulator" />
@@ -50,6 +59,8 @@ export default function Blog() {
           ))}
         </div>
         {posts.length === 0 && !err && <div className="empty"><span className="empty-icon"><Icon name="doc" size={22} /></span><h3>{en ? "No posts yet" : "Henüz yazı yok"}</h3></div>}
+
+        <AdSlot slot="secondary" className="ad-slot-inline" />
       </section>
 
       <footer className="landing-foot">

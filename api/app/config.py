@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     first_admin_email: str = ""
     first_admin_password: str = ""
 
+    # SEO (admin panel overrides; env acts as the seed/fallback)
+    indexnow_enabled: bool = False
+    indexnow_key: str = ""
+    indexnow_endpoint: str = "https://api.indexnow.org/indexnow"
+
     # google sign-in (public client id, comma separated for multiple origins)
     google_client_id: str = ""
 

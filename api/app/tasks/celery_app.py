@@ -19,6 +19,7 @@ celery_app.conf.update(
     task_soft_time_limit=3600 * 3 - 60,
     beat_schedule={
         "blog-tick": {"task": "blog.tick", "schedule": 300.0},
+        "seo-indexnow": {"task": "seo.indexnow", "schedule": 3600.0},
     },
 )
 
@@ -26,3 +27,4 @@ import app.tasks.blog  # noqa: E402,F401  (registers "blog.tick" / "blog.generat
 import app.tasks.ingest  # noqa: E402,F401  (registers "ingest.document")
 import app.tasks.pipeline  # noqa: E402,F401  (registers shared_task "pipeline.run")
 import app.tasks.privacy  # noqa: E402,F401  (registers "privacy.delete_user")
+import app.tasks.seo  # noqa: E402,F401  (registers "seo.indexnow")

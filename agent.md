@@ -239,6 +239,7 @@ Zaman/sim konfigürasyonu (`run.sim_config`): `agents_n, rounds, platforms, peak
 | **F7 - Pazarlama sitesi** | 15 | Public blog (TR/EN), landing animasyonları, blog navigasyonu | `/blog` ve `/blog/{slug}` yayında; landing'de blog linki, reveal animasyonları ve prefers-reduced-motion desteği |
 | **F8 - API platformu** | 16 | API anahtarları, `/api/v1` proje/run/rapor uçları, HMAC imzalı webhook'lar, geliştirici UI | Anahtar ile proje oluşturup run başlatma ve rapor indirme uçtan uca çalışır; webhook imzası doğrulanır, SSRF engellenir |
 | **F9 - Görüş analizi + içerik** | 17 | Görüş/karar dağılımı, neden temaları ve grafikli rapor analizi; `social_post_test` senaryosu; AI blog editörü + zamanlanmış yayın; müşteri arayüzünde maliyet gizleme | Müşteri maliyet görmez; rapor ekranı olumlu/olumsuz/kararsız yüzdelerini, gerekçeleri ve yorumları gösterir; hazır gönderi hedef kitleye test edilir; admin konu kuyruğu ve otomatik yayın aralığını yönetir |
+| **F11 - SEO & pazarlama** | 18 | Admin SEO paneli; dinamik sitemap/robots/llms.txt/RSS; JSON-LD; IndexNow; GA4/Plausible + AdSense çalışma zamanı enjeksiyonu; kopya içerik denetimi | `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/feed.xml` canlı; admin panelden IndexNow gönderimi çalışır; kopya içerik tespit eder; analytics/reklam kodları rebuild olmadan açılıp kapanır |
 
 Kaynak: 1 dev tam zamanlı + 1 UI/barkı → ~13 hafta; 2 dev → ~10–14 hafta.
 
@@ -340,3 +341,37 @@ Deploy akışı:
 - Cloudflare 100sn istek siniri var: uzun sureli redeploy API cagrisi 524 verir; webhook (asenkron) tercih edilmeli.
 - Portainer yeni stack olusturma: `POST /api/stacks/create/standalone/repository?endpointId=2` (type: swarm|standalone|kubernetes; method: string|repository|file). Env `[{name,value}]`, git alanlari duz (`RepositoryURL`, `ReferenceName`, `ConfigFilePath`).
 - `PUT /api/stacks/{id}` icin `?endpointId=2` query parametresi zorunlu.
+---
+
+## 18) SEO & pazarlama yonetimi (F11)
+
+### 18.1 Yapilar
+
+- **DB**: seo_settings (singleton, id=1), seo_pages (yol bazli meta override), seo_submissions (IndexNow gonderim gunlugu). log_posts tablosuna SEO sutunlari eklendi: meta_description_tr/en, ocus_keyword_tr/en, og_image, canonical_url, 
+oindex.
+- **Backend yardimci**: pi/app/seo.py � sitemap/robots/llms.txt/RSS uretecleri, JSON-LD sablonlari, shingle tabanli kopya icerik benzerligi, anahtar kelime yogunlugu.
+- **Public uclar** (pi/app/seo_api.py): /sitemap.xml (index), /sitemap-pages.xml, /sitemap-blog.xml, /robots.txt, /llms.txt, /llms-full.txt, /feed.xml, /{indexnow_key}.txt, /api/seo/runtime, /api/seo/pages, /api/seo/jsonld/{slug}.
+- **Admin API** (pi/app/seo_admin_api.py, prefix /api/admin/seo, dmin_only korumali): GET/PUT "" (ayarlar), PUT/DELETE /pages/{path}, PATCH /posts/{slug}, GET /audit, GET /indexnow/log, POST /indexnow/submit, POST /indexnow/key.
+- **Frontend**: web/src/seo.js (meta etiketi yonetimi + /api/seo/runtime cache), web/src/components/SeoHead.jsx (SeoHead + AnalyticsLoader), web/src/components/AdSlot.jsx (AdSense slotu), web/src/pages/AdminSeo.jsx (admin arayuzu). Panelde **Yonetim > SEO & Pazarlama** (/app/admin/seo).
+- **Infra**: web/nginx.conf icin SEO uclarini API'ye proxy eden regex location'lar eklendi (/sitemap*.xml, /robots.txt, /llms*.txt, /feed.xml, /{key}.txt). /api/ ve /assets/ ^~ olarak isaretlendi.
+- **Celery**: seo.indexnow task'i (pi/app/tasks/seo.py), beat ile saatlik calisir; log.tick ile ayni dosyada degil ayri moduledir.
+
+### 18.2 Kurulum (admin panelden)
+
+1. Panel > Yonetim > SEO & Pazarlama > "Site kimligi" bolumunden **Kanonik site URL** girin (ornegin https://app.socialsimulator.com.tr). Bos birakilirsa PUBLIC_BASE_URL env degeri kullanilir.
+2. Varsayilan meta aciklamalari (TR/EN) ve OG gorseli doldurun (1200x630 onerilir).
+3. IndexNow: **Anahtar uret** ile bir anahtar olusturun; anahtar /{key}.txt olarak sunulur. **IndexNow aktif** isaretleyin ve "Tum sayfalari gonder" ile test edin.
+4. Google/Bing dogrulama kodlarini ilgili alanlara yapistirin; sayfa acilirken <meta name="google-site-verification"> olarak otomatik eklenir.
+5. Analytics: saglayici secin (GA4 / Plausible) ve kimligi girin. Ads: ca-pub-... yayinci kimligi ve slot id'lerini girin. Bu ayarlar **rebuild gerektirmez**, /api/seo/runtime uzerinden calisma zamaninda enjekte edilir.
+
+### 18.3 AI bot politikasi
+
+- llow_ai_bots virgulle ayrilmis izin listesi (varsayilan: GPTBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot).
+- lock_ai_bots acikken izin listesindeki botlar disindaki tum AI tarayicilari Disallow: / alir.
+- /llms.txt (llmstxt.org) ve /llms-full.txt sitenin makine-okunur tam metnini verir � LLM'lerin siteyi kolayca indekslemesi icin.
+
+### 18.4 Notlar
+
+- Panel menusunde **Blog linki yoktur**; blog yalnizca landing page'de (nav + footer) ve /blog yolundadir.
+- Kopya icerik denetimi: shingle (4-gram) + cosine benzerligi; esik %30. Baslik benzerligi ayrica agirliklandirilir.
+- Anahtar kelime yogunlugu 0 ise "kelime gecmiyor", %3.5 ustu ise "anahtar kelime yigilmasi" uyarisi verir.
