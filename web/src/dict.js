@@ -1,8 +1,10 @@
 export const EN = {
+  "Ana menü": "Main menu",
   "Blog editörü": "Blog editor",
   "Girişe dön": "Back to sign in",
   "Hesap": "Account",
   "Menü": "Menu",
+  "Menüyü kapat": "Close menu",
   "Social Simulator": "Social Simulator",
   "Tüm çıktılar simülasyon ürünüdür": "All outputs are simulation artifacts",
   "Yönetim": "Admin",

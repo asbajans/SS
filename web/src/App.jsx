@@ -14,6 +14,7 @@ const COPY = {
     navFeatures: "Özellikler",
     navHow: "Nasıl çalışır",
     navPricing: "Fiyatlandırma",
+    navBlog: "Blog",
     panel: "Kontrol Paneli",
     login: "Giriş",
     heroTag: "Sentetik topluluk simülasyonu",
@@ -82,6 +83,7 @@ const COPY = {
     navFeatures: "Features",
     navHow: "How it works",
     navPricing: "Pricing",
+    navBlog: "Blog",
     panel: "Control Panel",
     login: "Sign in",
     heroTag: "Synthetic community simulation",
@@ -316,6 +318,7 @@ export default function App() {
           <a href="#features">{t.navFeatures}</a>
           <a href="#how">{t.navHow}</a>
           <a href="#pricing">{t.navPricing}</a>
+          <Link to="/blog">{t.navBlog}</Link>
         </nav>
         <div className="lp-navside">
           <div className="lp-lang" role="group" aria-label="Language">

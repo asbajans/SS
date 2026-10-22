@@ -197,17 +197,27 @@ button { font-family: inherit; }
   border-bottom: 1px solid var(--border);
   padding: 11px 22px; min-height: 56px;
 }
-.burger { display: none; flex-direction: column; gap: 4px; background: none; border: 0; cursor: pointer; padding: 6px; }
-.burger span { width: 20px; height: 2px; background: var(--text); border-radius: 2px; }
-.page-title { font-size: 16.5px; font-weight: 700; flex: 1; min-width: 0; }
-.topbar-right { display: flex; gap: 10px; align-items: center; }
-.sim-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 650; color: #78350f;
-  background: var(--warn-soft); border: 1px solid #fdba74;
-  padding: 5px 11px; border-radius: 999px;
+.burger { display: none; flex-direction: column; gap: 4px; background: none; border: 0; cursor: pointer; padding: 6px; flex: none; }
+.burger span { width: 20px; height: 2px; background: var(--text); border-radius: 2px; transition: transform 0.22s ease, opacity 0.18s ease; }
+.page-title {
+  font-size: 16.5px; font-weight: 700; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.topbar-right { display: flex; gap: 10px; align-items: center; flex: none; }
+.nav-backdrop { display: none; border: 0; padding: 0; }
+.nav-locked, .nav-locked body { overflow: hidden; }
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-right: 12px; }
+.sidebar-head .brand { flex: 1; min-width: 0; padding-right: 0; }
+.nav-close {
+  display: none; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex: none;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-2); cursor: pointer;
+}
+.nav-close:hover { background: #f1f5f9; color: var(--text); }
+
 .content { padding: 28px; display: flex; flex-direction: column; gap: 20px; max-width: 1300px; width: 100%; margin: 0 auto; animation: fadeIn 0.25s ease; }
+
 .app-foot { margin-top: auto; padding: 14px 22px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; background: transparent; }
 
 /* ---------- stats / tables ---------- */
@@ -398,16 +408,45 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 }
 @media (max-width: 860px) {
   .shell { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--border); position: static; }
   .burger { display: flex; }
+  .burger.is-open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .burger.is-open span:nth-child(2) { opacity: 0; }
+  .burger.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+  .nav-close { display: inline-flex; }
+
+  .sidebar {
+    position: fixed; top: var(--topbar-h, 56px); left: 0; bottom: 0; z-index: 70;
+    width: 268px; max-width: 84vw; height: auto;
+    border-right: 1px solid var(--border); border-bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .shell.nav-open .sidebar { transform: translateX(0); }
+
+  .nav-backdrop {
+    display: block; position: fixed; top: var(--topbar-h, 56px); left: 0; right: 0; bottom: 0; z-index: 60;
+    background: rgba(2, 6, 23, 0.55);
+    border: 0; padding: 0;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+  .shell.nav-open .nav-backdrop { opacity: 1; pointer-events: auto; }
+
   .content { padding: 16px; }
   .kv { grid-template-columns: 1fr; gap: 2px 0; }
   .kv dd { margin-bottom: 10px; }
-  .topbar { padding: 10px 16px; }
+  .topbar { padding: 10px 14px; gap: 10px; }
   .landing-section { padding: 56px 22px; }
   .feature-grid { grid-template-columns: 1fr; }
   .landing-cta-band { width: calc(100% - 44px); padding: 40px 22px; }
 }
+
+@media (max-width: 620px) {
+  .topbar-new-label { display: none; }
+  .topbar-new { padding: 6px 10px; }
+}
+
 
 /* F2: uploads, agents, live feed */
 .upload-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }

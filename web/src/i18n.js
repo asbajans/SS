@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { EN } from "./dict.js";
 
 const LANG_KEY = "ss_lang";
-const ATTRS = ["placeholder", "title"];
+const ATTRS = ["placeholder", "title", "aria-label"];
 
 const textState = new WeakMap();
 const attrState = new WeakMap();
