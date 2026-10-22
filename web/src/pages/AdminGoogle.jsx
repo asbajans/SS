@@ -75,8 +75,13 @@ export default function AdminGoogle() {
     setErr(null); setMsg(null); setBusy(key);
     try {
       const res = await fn();
-      if (res?.ok === false && res?.error) setErr(res.error);
-      else setMsg(`${key} tamamlandi`);
+      if (res?.ok === false) {
+        if (res.error) setErr(res.error);
+        if (res.message) setMsg(res.message);
+        if (!res.error && !res.message) setMsg(`${key} tamamlandi`);
+        return res;
+      }
+      setMsg(res?.message || `${key} tamamlandi`);
       return res;
     } catch (e) {
       setErr(e.message);
@@ -132,9 +137,14 @@ export default function AdminGoogle() {
           create_key_events: true,
         }),
       });
-      setMsg(`Oluşturuldu: ${(res.created || []).join(", ") || "yok"} | Atlanan: ${(res.skipped || []).join(", ") || "-"}`);
-      if ((res.errors || []).length) setErr(res.errors.join(" | "));
-      return { ok: true };
+      const errors = res.errors || [];
+      return {
+        ok: errors.length === 0,
+        error: errors.join(" | "),
+        message: `Olusturuldu: ${(res.created || []).join(", ") || "yok"} | Atlanan: ${
+          (res.skipped || []).join(", ") || "-"
+        }`,
+      };
     });
   }
 
@@ -142,15 +152,15 @@ export default function AdminGoogle() {
     await run("ga4_test", async () => {
       const res = await api("/api/admin/google/ga4/test-event", { method: "POST" });
       if (res.ok === false) {
-        setErr(`GA4 reddetti: ${res.error || JSON.stringify(res)}`);
-        return { ok: true };
+        return { ok: false, error: `GA4 reddetti: ${res.error || JSON.stringify(res)}` };
       }
-      setMsg(
-        `'ga4_test' olayi gonderildi (client_id: ${res.client_id}). ` +
-          "GA4 > Yonetici > DebugView > 'Sunucudan' sekmesinde 1-2 dakikada gorunur. " +
-          "DebugView sadece acikken gelen olaylari gosterir; kacirdiysaniz Realtime raporuna bakin.",
-      );
-      return { ok: true };
+      return {
+        ok: true,
+        message:
+          `'ga4_test' olayi gonderildi (client_id: ${res.client_id}, HTTP ${res.status}). ` +
+          "Sunucu modu aktif: GA4 > Yonetici > DebugView > 'Sunucudan' sekmesinde 1-2 dakikada gorunur. " +
+          "DebugView yalnizca acikken gelen olaylari gosterir; kacirdiysaniz Gercek zamanli raporuna bakin.",
+      };
     });
   }
 
@@ -160,8 +170,7 @@ export default function AdminGoogle() {
         method: "POST",
         body: JSON.stringify({ sitemap_url: "" }),
       });
-      setMsg(`Sitemap gönderildi: ${res.sitemap}`);
-      return { ok: true };
+      return { ok: true, message: `Sitemap gonderildi: ${res.sitemap}` };
     });
   }
 

@@ -100,6 +100,18 @@ async def send_event(
     except ValueError:
         data = {"raw": resp.text[:300]}
     if debug:
+        messages = data.get("validationMessages") or []
+        if messages:
+            text = "; ".join(
+                f"{m.get('fieldPath', '?')}: {m.get('description', '')}" for m in messages
+            )
+            return {
+                "ok": False,
+                "status": resp.status_code,
+                "error": text[:400],
+                "validationMessages": messages,
+                "response": data,
+            }
         return {"ok": True, "status": resp.status_code, "response": data}
     return {"ok": True, "status": resp.status_code}
 
