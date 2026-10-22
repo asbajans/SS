@@ -141,7 +141,15 @@ export default function AdminGoogle() {
   async function ga4Test() {
     await run("ga4_test", async () => {
       const res = await api("/api/admin/google/ga4/test-event", { method: "POST" });
-      setMsg(`GA4 yanıtı: ${JSON.stringify(res).slice(0, 400)}`);
+      if (res.ok === false) {
+        setErr(`GA4 reddetti: ${res.error || JSON.stringify(res)}`);
+        return { ok: true };
+      }
+      setMsg(
+        `'ga4_test' olayi gonderildi (client_id: ${res.client_id}). ` +
+          "GA4 > Yonetici > DebugView > 'Sunucudan' sekmesinde 1-2 dakikada gorunur. " +
+          "DebugView sadece acikken gelen olaylari gosterir; kacirdiysaniz Realtime raporuna bakin.",
+      );
       return { ok: true };
     });
   }

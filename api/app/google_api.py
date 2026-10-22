@@ -263,14 +263,24 @@ async def ga4_test_event(db: AsyncSession = Depends(get_db)) -> dict:
     seo = await _ga4_settings(db)
     if not seo.analytics_id or not seo.ga4_api_secret:
         raise HTTPException(status_code=400, detail="measurement ID veya API secret eksik")
+    if not seo.analytics_id.startswith("G-"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Measurement ID 'G-' ile baslamali, girilen: '{seo.analytics_id}'. "
+                "GTM-... bir Tag Manager ID'sidir, buraya yazilmaz."
+            ),
+        )
+    cid = client_id_for("admin-test")
     result = await send_event(
         seo.analytics_id,
         seo.ga4_api_secret,
-        "ss_test_event",
+        "ga4_test",
         {"source": "admin_panel", "value": 0, "currency": "USD"},
-        client_id=client_id_for("admin-test"),
+        client_id=cid,
         debug=True,
     )
+    result.update({"event": "ga4_test", "client_id": cid, "debug_view": "Sunucudan"})
     return result
 
 

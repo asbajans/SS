@@ -74,7 +74,12 @@ async def send_event(
     """
     if not measurement_id or not api_secret:
         return {"ok": False, "error": "measurement_id veya api_secret eksik"}
-    payload = build_payload(measurement_id, api_secret, name, params, client_id)
+    event_params = dict(params or {})
+    if debug:
+        # Guarantees the event lands in DebugView even when the debug endpoint
+        # is proxied or cached by an intermediary.
+        event_params.setdefault("debug_mode", 1)
+    payload = build_payload(measurement_id, api_secret, name, event_params, client_id)
     url = DEBUG_URL if debug else COLLECT_URL
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
